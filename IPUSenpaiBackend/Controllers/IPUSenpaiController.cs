@@ -28,6 +28,10 @@ public class IPUSenpaiController : ControllerBase
     [Route("student/{enrollment}")]
     public async Task<StudentSenpai> GetStudent(string enrollment)
     {
+        if (enrollment.Length < 10)
+        {
+            return new StudentSenpai();
+        }
         return await _api.GetStudentByEnrollment(enrollment);
     }
 }
