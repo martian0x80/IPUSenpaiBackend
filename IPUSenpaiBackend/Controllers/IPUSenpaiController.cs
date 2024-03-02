@@ -10,14 +10,22 @@ public class IPUSenpaiController : ControllerBase
 {
     private readonly IIPUSenpaiAPI _api;
     private readonly ILogger _logger;
-
+    
     public IPUSenpaiController(IIPUSenpaiAPI api, ILogger<IPUSenpaiController> logger)
     {
         _api = api;
         _logger = logger;
     }
     
-    [HttpGet(Name = "GetStudent")]
+    [HttpGet]
+    [Route("/")]
+    public string Get()
+    {
+        return "Pani Puri Senpai API v1.0.0";
+    }
+    
+    [HttpGet]
+    [Route("student/{enrollment}")]
     public async Task<StudentSenpai> GetStudent(string enrollment)
     {
         return await _api.GetStudentByEnrollment(enrollment);
