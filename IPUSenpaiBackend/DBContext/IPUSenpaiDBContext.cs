@@ -1,0 +1,163 @@
+﻿using System;
+using System.Collections.Generic;
+using IPUSenpaiBackend.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace IPUSenpaiBackend.DBContext;
+
+public partial class IPUSenpaiDBContext : DbContext
+{
+    public IPUSenpaiDBContext()
+    {
+    }
+
+    public IPUSenpaiDBContext(DbContextOptions<IPUSenpaiDBContext> options)
+        : base(options)
+    {
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        => optionsBuilder.LogTo(Console.WriteLine);
+
+    public virtual DbSet<Institute> Institutes { get; set; }
+
+    public virtual DbSet<Programme> Programmes { get; set; }
+
+    public virtual DbSet<Result> Results { get; set; }
+
+    public virtual DbSet<Student> Students { get; set; }
+
+    public virtual DbSet<Subject> Subjects { get; set; }
+
+//     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+// #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+//         => optionsBuilder.UseNpgsql();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Institute>(entity =>
+        {
+            entity.HasKey(e => e.Instcode).HasName("institute_pkey");
+
+            entity.ToTable("institute");
+
+            entity.Property(e => e.Instcode)
+                .ValueGeneratedNever()
+                .HasColumnName("instcode");
+            entity.Property(e => e.Instname).HasColumnName("instname");
+        });
+
+        modelBuilder.Entity<Programme>(entity =>
+        {
+            entity.HasKey(e => e.Progcode).HasName("programme_pkey");
+
+            entity.ToTable("programme");
+
+            entity.Property(e => e.Progcode)
+                .HasMaxLength(8)
+                .HasColumnName("progcode");
+            entity.Property(e => e.Progname).HasColumnName("progname");
+        });
+
+        modelBuilder.Entity<Result>(entity =>
+        {
+            entity.HasKey(e => new { e.ResultId, e.Enrolno, e.Subcode, e.Schemeid, e.Exam }).HasName("results_pkey");
+
+            entity.ToTable("results");
+
+            entity.Property(e => e.ResultId)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("result_id");
+            entity.Property(e => e.Enrolno)
+                .HasMaxLength(12)
+                .HasColumnName("enrolno");
+            entity.Property(e => e.Subcode)
+                .HasMaxLength(12)
+                .HasColumnName("subcode");
+            entity.Property(e => e.Schemeid)
+                .HasMaxLength(15)
+                .HasColumnName("schemeid");
+            entity.Property(e => e.Exam).HasColumnName("exam");
+            entity.Property(e => e.Batch).HasColumnName("batch");
+            entity.Property(e => e.External).HasColumnName("external");
+            entity.Property(e => e.Internal).HasColumnName("internal");
+            entity.Property(e => e.Resultdate).HasColumnName("resultdate");
+            entity.Property(e => e.Semester).HasColumnName("semester");
+            entity.Property(e => e.Total).HasColumnName("total");
+
+            entity.HasOne(d => d.EnrolnoNavigation).WithMany(p => p.Results)
+                .HasForeignKey(d => d.Enrolno)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("results_enrolno_fkey");
+        });
+
+        modelBuilder.Entity<Student>(entity =>
+        {
+            entity.HasKey(e => e.Enrolno).HasName("student_pkey");
+
+            entity.ToTable("student");
+
+            entity.Property(e => e.Enrolno)
+                .HasMaxLength(12)
+                .HasColumnName("enrolno");
+            entity.Property(e => e.Batch).HasColumnName("batch");
+            entity.Property(e => e.Instcode).HasColumnName("instcode");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Progcode)
+                .HasMaxLength(12)
+                .HasColumnName("progcode");
+            entity.Property(e => e.Sid)
+                .HasMaxLength(20)
+                .HasColumnName("sid");
+
+            entity.HasOne(d => d.InstcodeNavigation).WithMany(p => p.Students)
+                .HasForeignKey(d => d.Instcode)
+                .HasConstraintName("student_instcode_fkey");
+
+            entity.HasOne(d => d.ProgcodeNavigation).WithMany(p => p.Students)
+                .HasForeignKey(d => d.Progcode)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("student_progcode_fkey");
+        });
+
+        modelBuilder.Entity<Subject>(entity =>
+        {
+            entity.HasKey(e => e.Subid).HasName("subjects_pkey");
+
+            entity.ToTable("subjects");
+
+            entity.Property(e => e.Subid).HasColumnName("subid");
+            entity.Property(e => e.Credits).HasColumnName("credits");
+            entity.Property(e => e.Exam)
+                .HasMaxLength(12)
+                .HasColumnName("exam");
+            entity.Property(e => e.Kind)
+                .HasMaxLength(15)
+                .HasColumnName("kind");
+            entity.Property(e => e.Major).HasColumnName("major");
+            entity.Property(e => e.Maxmarks).HasColumnName("maxmarks");
+            entity.Property(e => e.Minor).HasColumnName("minor");
+            entity.Property(e => e.Mode)
+                .HasMaxLength(15)
+                .HasColumnName("mode");
+            entity.Property(e => e.Paperid)
+                .HasMaxLength(12)
+                .HasColumnName("paperid");
+            entity.Property(e => e.Papername).HasColumnName("papername");
+            entity.Property(e => e.Passmarks).HasColumnName("passmarks");
+            entity.Property(e => e.Schemeid)
+                .HasMaxLength(15)
+                .HasColumnName("schemeid");
+            entity.Property(e => e.Subcode)
+                .HasMaxLength(12)
+                .HasColumnName("subcode");
+            entity.Property(e => e.Type)
+                .HasMaxLength(15)
+                .HasColumnName("type");
+        });
+
+        OnModelCreatingPartial(modelBuilder);
+    }
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+}
