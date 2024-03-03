@@ -16,9 +16,6 @@ public partial class IPUSenpaiDBContext : DbContext
     {
     }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.LogTo(Console.WriteLine);
-
     public virtual DbSet<Institute> Institutes { get; set; }
 
     public virtual DbSet<Programme> Programmes { get; set; }
@@ -29,9 +26,9 @@ public partial class IPUSenpaiDBContext : DbContext
 
     public virtual DbSet<Subject> Subjects { get; set; }
 
-//     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-// #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-//         => optionsBuilder.UseNpgsql();
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.LogTo(Console.WriteLine);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,7 +53,9 @@ public partial class IPUSenpaiDBContext : DbContext
             entity.Property(e => e.Progcode)
                 .HasMaxLength(8)
                 .HasColumnName("progcode");
+            entity.Property(e => e.Prog).HasColumnName("prog");
             entity.Property(e => e.Progname).HasColumnName("progname");
+            entity.Property(e => e.Spec).HasColumnName("spec");
         });
 
         modelBuilder.Entity<Result>(entity =>

@@ -32,7 +32,7 @@ builder.Services.AddRateLimiter(s =>
     {
         options.TokenLimit = 2;
         options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        options.QueueLimit = 1;
+        options.QueueLimit = 2;
         options.ReplenishmentPeriod = TimeSpan.FromSeconds(10);
         options.TokensPerPeriod = 2;
         options.AutoReplenishment = true;
@@ -49,7 +49,7 @@ builder.Services.AddRateLimiter(s =>
                 {
                     TokenLimit = 5,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 1,
+                    QueueLimit = 2,
                     ReplenishmentPeriod = TimeSpan.FromSeconds(30),
                     TokensPerPeriod = 5,
                     AutoReplenishment = true

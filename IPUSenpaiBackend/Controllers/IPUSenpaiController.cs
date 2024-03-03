@@ -1,7 +1,7 @@
 using IPUSenpaiBackend.IPUSenpai;
 using IPUSenpaiBackend.CustomEntities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
+// using Microsoft.AspNetCore.RateLimiting;
 
 namespace IPUSenpaiBackend.Controllers;
 
@@ -27,7 +27,7 @@ public class IPUSenpaiController : ControllerBase
     
     [HttpGet]
     [Route("student/{enrollment}")]
-    [EnableRateLimiting("tokenbucket")]
+    // [EnableRateLimiting("tokenbucket")]
     public async Task<StudentSenpai> GetStudent(string enrollment)
     {
         if (enrollment.Length < 10)
@@ -35,5 +35,26 @@ public class IPUSenpaiController : ControllerBase
             return new StudentSenpai();
         }
         return await _api.GetStudentByEnrollment(enrollment);
+    }
+
+    [HttpGet]
+    [Route("institutes/{limit}")]
+    public async Task<List<String?>> GetInstitutes(short limit)
+    {
+        return await _api.GetInstitutes(limit);
+    }
+    
+    [HttpGet]
+    [Route("programmes/{limit}")]
+    public async Task<List<String?>> GetProgrammes(short limit)
+    {
+        return await _api.GetProgrammes(limit);
+    }
+    
+    [HttpGet]
+    [Route("specializations/{limit}/{programme}")]
+    public async Task<List<String?>> GetSpecializations(short limit, string programme)
+    {
+        return await _api.GetSpecializations(limit, programme);
     }
 }
