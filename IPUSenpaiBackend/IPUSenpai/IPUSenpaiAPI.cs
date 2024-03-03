@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using IPUSenpaiBackend.CustomEntities;
 using IPUSenpaiBackend.DBContext;
 using Microsoft.EntityFrameworkCore;
@@ -31,9 +32,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Batch = s.Batch,
                 Sid = s.Sid,
             }).FirstOrDefaultAsync();
+        
+        if (student == null)
+        {
+            student = new StudentSenpai();
+        }
 
         return student;
-
     }
 
 }

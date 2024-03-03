@@ -1,6 +1,9 @@
+using System.Net;
 using IPUSenpaiBackend.DBContext;
 using IPUSenpaiBackend.IPUSenpai;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,10 +22,47 @@ if (builder.Environment.IsDevelopment())
     });
     
 }
+
 builder.Services.AddDbContext<IPUSenpaiDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("CONNSTR")));
 
+builder.Services.AddRateLimiter(s =>
+{
+    s.AddTokenBucketLimiter(policyName: "tokenbucket", options =>
+    {
+        options.TokenLimit = 2;
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        options.QueueLimit = 1;
+        options.ReplenishmentPeriod = TimeSpan.FromSeconds(10);
+        options.TokensPerPeriod = 2;
+        options.AutoReplenishment = true;
+    });
+    s.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, IPAddress>(context =>
+    {
+        IPAddress? remoteIpAddress = context.Connection.RemoteIpAddress;
+
+        if (!IPAddress.IsLoopback(remoteIpAddress!))
+        {
+            return RateLimitPartition.GetTokenBucketLimiter
+            (remoteIpAddress!, _ =>
+                new TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 5,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 1,
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(30),
+                    TokensPerPeriod = 5,
+                    AutoReplenishment = true
+                });
+        }
+
+        return RateLimitPartition.GetNoLimiter(IPAddress.Loopback);
+    });
+});
+
 var app = builder.Build();
+
+app.UseRateLimiter();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

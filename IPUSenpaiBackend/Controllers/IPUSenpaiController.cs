@@ -1,6 +1,7 @@
 using IPUSenpaiBackend.IPUSenpai;
 using IPUSenpaiBackend.CustomEntities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace IPUSenpaiBackend.Controllers;
 
@@ -26,6 +27,7 @@ public class IPUSenpaiController : ControllerBase
     
     [HttpGet]
     [Route("student/{enrollment}")]
+    [EnableRateLimiting("tokenbucket")]
     public async Task<StudentSenpai> GetStudent(string enrollment)
     {
         if (enrollment.Length < 10)
