@@ -91,6 +91,37 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return specializations;
     }
     
+    public async Task<InstituteSenpai> GetInstituteByInstcode(short? instcode)
+    {
+        var institute = await _context.Institutes
+            .Where(i => i.Instcode == instcode)
+            .Select(i => new InstituteSenpai
+            {
+                Instcode = i.Instcode,
+                Instname = i.Instname,
+            })
+            .Take(1)
+            .FirstOrDefaultAsync();
+        return institute;
+    }
+    
+    public async Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode)
+    {
+        var programme = await _context.Programmes
+            .Where(p => p.Progcode == progcode)
+            .Select(p => new ProgrammeSenpai
+            {
+                Progcode = p.Progcode,
+                Progname = p.Progname,
+                Prog = p.Prog,
+                Spec = p.Spec
+            })
+            .Take(1)
+            .FirstOrDefaultAsync();
+        return programme;
+    }
+    
+    
     // public async Task<List<StudentSenpai>> GetStudentsByInstitute(string? institute)
     // {
     //     List<StudentSenpai> students = await _context.Students

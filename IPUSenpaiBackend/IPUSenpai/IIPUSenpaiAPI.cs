@@ -8,4 +8,6 @@ public interface IIPUSenpaiAPI
     public Task<List<string?>> GetInstitutes(short limit = 30);
     public Task<List<string?>> GetProgrammes(short limit = 30);
     public Task<List<string?>> GetSpecializations(short limit = 30, string? programme = null);
+    public Task<InstituteSenpai> GetInstituteByInstcode(short? instcode);
+    public Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode);
 }
