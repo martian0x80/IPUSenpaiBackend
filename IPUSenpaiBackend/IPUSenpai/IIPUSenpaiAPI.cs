@@ -8,7 +8,7 @@ public interface IIPUSenpaiAPI
     public Task<Dictionary<string?, short>> GetInstitutes(short limit = 79);
     public Task<List<string?>> GetInstitutesByProgramme(string programme, short limit = 79);
     public Task<List<string?>> GetProgrammes(short limit = 30);
-    public Task<List<string?>> GetSpecializationsByProgramme(short limit = 30, string? programme = "BACHELOR OF TECHNOLOGY");
+    public Task<Dictionary<string, string>> GetSpecializationsByProgramme(short limit = 30, string? programme = "BACHELOR OF TECHNOLOGY");
     public Task<Dictionary<string, short>> GetInstituteCodesForShifts(string instname);
     public Task<List<short?>> GetBatchesByPrognameAndInstname(string programme, string institute);
     public Task<InstituteSenpai> GetInstituteByInstcode(short? instcode);

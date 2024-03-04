@@ -97,16 +97,20 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return programmes;
     }
     
-    public async Task<List<string?>> GetSpecializationsByProgramme(short limit = 30, string? prog = "")
+    public async Task<Dictionary<string, string>> GetSpecializationsByProgramme(short limit = 30, string? prog = "")
     {
         var specializations = await _context.Programmes
         .Where(p => p.Prog == prog)
-        .Select(p => p.Spec)
+        .Select(p => new
+        {
+            p.Spec,
+            p.Progcode
+        })
         .Take(limit)
-        .ToListAsync();
+        .ToDictionaryAsync(p => p.Spec, p => p.Progcode);
         if (specializations.Count == 0)
         {
-            specializations.Add("No specializations found");
+            specializations.Add("No specializations found", "0");
         }
         return specializations;
     }
