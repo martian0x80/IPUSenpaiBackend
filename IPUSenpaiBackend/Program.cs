@@ -47,11 +47,11 @@ builder.Services.AddRateLimiter(s =>
             (remoteIpAddress!, _ =>
                 new TokenBucketRateLimiterOptions
                 {
-                    TokenLimit = 5,
+                    TokenLimit = 30,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 2,
+                    QueueLimit = 15,
                     ReplenishmentPeriod = TimeSpan.FromSeconds(30),
-                    TokensPerPeriod = 5,
+                    TokensPerPeriod = 30,
                     AutoReplenishment = true
                 });
         }
@@ -64,19 +64,16 @@ var app = builder.Build();
 
 app.UseRateLimiter();
 
-// Configure the HTTP request pipeline.
-// if (app.Environment.IsDevelopment())
-// {
-//     app.UseSwagger();
-//     app.UseSwaggerUI();
-// } else
-// {
-//     app.UseExceptionHandler("/error");
-//     app.UseHsts();
-// }
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+} else
+{
+    app.UseExceptionHandler("/error");
+    app.UseHsts();
+}
 
-app.UseSwagger();
-app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 

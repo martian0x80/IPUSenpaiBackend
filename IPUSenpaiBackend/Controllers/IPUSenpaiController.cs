@@ -38,22 +38,22 @@ public class IPUSenpaiController : ControllerBase
     }
 
     [HttpGet]
-    [Route("institutes/{limit:int?}")]
-    public async Task<List<String?>> GetInstitutes(short limit)
+    [Route("institutes/{limit?}")]
+    public async Task<List<String?>> GetInstitutes(short limit = 50)
     {
         return await _api.GetInstitutes(limit);
     }
     
     [HttpGet]
-    [Route("programmes/{limit:int?}")]
-    public async Task<List<String?>> GetProgrammes(short limit)
+    [Route("programmes/{limit?}")]
+    public async Task<List<String?>> GetProgrammes(short limit = 100)
     {
         return await _api.GetProgrammes(limit);
     }
     
     [HttpGet]
-    [Route("specializations/programme={programme}/{limit:int?}")]
-    public async Task<List<String?>> GetSpecializations(short limit, string programme)
+    [Route("specializations/programme={programme}/{limit?}")]
+    public async Task<List<String?>> GetSpecializations(string programme, short limit = 100)
     {
         return await _api.GetSpecializations(limit, programme);
     }
