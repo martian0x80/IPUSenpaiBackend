@@ -65,15 +65,18 @@ var app = builder.Build();
 app.UseRateLimiter();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-} else
-{
-    app.UseExceptionHandler("/error");
-    app.UseHsts();
-}
+// if (app.Environment.IsDevelopment())
+// {
+//     app.UseSwagger();
+//     app.UseSwaggerUI();
+// } else
+// {
+//     app.UseExceptionHandler("/error");
+//     app.UseHsts();
+// }
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
