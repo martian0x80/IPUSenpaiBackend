@@ -20,6 +20,8 @@ public partial class IPUSenpaiDBContext : DbContext
 
     public virtual DbSet<Programme> Programmes { get; set; }
 
+    public virtual DbSet<ProgrammesInstitute> ProgrammesInstitutes { get; set; }
+
     public virtual DbSet<Result> Results { get; set; }
 
     public virtual DbSet<Student> Students { get; set; }
@@ -56,6 +58,26 @@ public partial class IPUSenpaiDBContext : DbContext
             entity.Property(e => e.Prog).HasColumnName("prog");
             entity.Property(e => e.Progname).HasColumnName("progname");
             entity.Property(e => e.Spec).HasColumnName("spec");
+        });
+
+        modelBuilder.Entity<ProgrammesInstitute>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("programmes_institutes");
+
+            entity.Property(e => e.Instcode).HasColumnName("instcode");
+            entity.Property(e => e.Progcode)
+                .HasMaxLength(8)
+                .HasColumnName("progcode");
+
+            entity.HasOne(d => d.InstcodeNavigation).WithMany()
+                .HasForeignKey(d => d.Instcode)
+                .HasConstraintName("programmes_institutes_instcode_fkey");
+
+            entity.HasOne(d => d.ProgcodeNavigation).WithMany()
+                .HasForeignKey(d => d.Progcode)
+                .HasConstraintName("programmes_institutes_progcode_fkey");
         });
 
         modelBuilder.Entity<Result>(entity =>
