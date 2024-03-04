@@ -60,6 +60,16 @@ builder.Services.AddRateLimiter(s =>
     });
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "AllowSpecificOrigins",
+        policy  =>
+        {
+            policy.WithOrigins("https://ipu-senpai.vercel.app",
+                "http://localhost:3000");
+        });
+});
+
 var app = builder.Build();
 
 app.UseRateLimiter();
@@ -68,12 +78,14 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-} else
+}
+else
 {
     app.UseExceptionHandler("/error");
     app.UseHsts();
 }
 
+app.UseCors("AllowSpecificOrigins");
 
 app.UseHttpsRedirection();
 

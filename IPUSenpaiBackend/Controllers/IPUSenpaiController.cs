@@ -36,20 +36,27 @@ public class IPUSenpaiController : ControllerBase
         }
         return await _api.GetStudentByEnrollment(enrollment);
     }
-
+    
+    [HttpGet]
+    [Route("programmes/{limit?}")]
+    public async Task<List<String?>> GetProgrammes(short limit = 79)
+    {
+        return await _api.GetProgrammes(limit);
+    }
+    
     [HttpGet]
     [Route("institutes/{limit?}")]
-    public async Task<List<String?>> GetInstitutes(short limit = 50)
+    public async Task<Dictionary<string?, short>> GetInstitutes(short limit = 50)
     {
         return await _api.GetInstitutes(limit);
     }
     
-    [HttpGet]
-    [Route("programmes/{limit?}")]
-    public async Task<List<String?>> GetProgrammes(short limit = 100)
-    {
-        return await _api.GetProgrammes(limit);
-    }
+    // [HttpGet]
+    // [Route("institutes/programme={programme}/{limit?}")]
+    // public async Task<List<String?>> GetInstitutes(string programme, short limit = 100)
+    // {
+    //     return await _api.GetInstitutesBy(programme, limit);
+    // }
     
     [HttpGet]
     [Route("specializations/programme={programme}/{limit?}")]

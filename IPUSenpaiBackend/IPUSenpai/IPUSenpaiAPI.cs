@@ -40,33 +40,50 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return student;
     }
     
-    public async Task<List<string?>> GetInstitutes(short limit = 30)
+    public async Task<Dictionary<string?, short>> GetInstitutes(short limit = 50)
     {
         /*
          * select instname, count(*) from institute inner join student on student.instcode=institute.instcode group by institute.instname having count(*) > 100 order by count(*) desc;
          */
-        // var institutes = await _context.Students
-        //     .Include(s => s.InstcodeNavigation)
-        //     .GroupBy(s => s.InstcodeNavigation.Instname)
-        //     .Where(s => s.Count() > 100)
-        //     .OrderByDescending(s => s.Count())
-        //     .Select(s => s.Key)
-        //     .ToListAsync();
+        var institutes = await _context.Students
+            .Include(s => s.InstcodeNavigation)
+            .GroupBy(s => s.InstcodeNavigation.Instname)
+            .Where(s => s.Count() > 100)
+            .OrderByDescending(s => s.Count())
+            .Select(s => new
+            {
+                Instname = s.Key,
+                Instcode = s.FirstOrDefault().InstcodeNavigation.Instcode
+            })
+            .ToDictionaryAsync(s => s.Instname, s => s.Instcode);
         // Total 107 unique institutes
-        var institutes = (from s in _context.Institutes
-            join i in _context.Students on s.Instcode equals i.Instcode
-            group s by s.Instname into g
-            // where g.Count() > 500
-            orderby g.Count() descending
-            select g.Key).Take(limit);
-        return await institutes.ToListAsync();
+        // var institutes = (from s in _context.Institutes
+        //     join i in _context.Students on s.Instcode equals i.Instcode
+        //     group s by s.Instname into g
+        //     // where g.Count() > 500
+        //     orderby g.Count() descending
+        //     select g.Key).Take(limit);
+        return institutes;
     }
+    
+    // public async Task<Dictionary<string?, short>> GetInstitutesByProgramme(string programme, short limit = 79)
+    // {
+    //     var programmes = await _context.Programmes
+    //         .GroupBy(p => p.Prog)
+    //         .Select(p => p.Key)
+    //         .Take(limit)
+    //         .ToListAsync();
+    //     if (programmes.Count == 0)
+    //     {
+    //         programmes.Add("No programmes found");
+    //     }
+    //     return programmes;
+    // }
 
-    public async Task<List<string?>> GetProgrammes(short limit = 30)
+    public async Task<List<string?>> GetProgrammes(short limit = 79)
     {
         var programmes = await _context.Programmes
             .GroupBy(p => p.Prog)
-            .OrderByDescending(p => p.Count())
             .Select(p => p.Key)
             .Take(limit)
             .ToListAsync();
