@@ -11,6 +11,7 @@ public interface IIPUSenpaiAPI
     public Task<Dictionary<string, string>> GetSpecializationsByProgrammeAndInstname(short limit = 30, string? programme = "BACHELOR OF TECHNOLOGY", string? instname = "University School of Information & Communication Technology");
     public Task<Dictionary<string, short>> GetInstituteCodesForShifts(string instname);
     public Task<List<short?>> GetBatchesByPrognameAndInstname(string programme, string institute);
+    public Task<List<short>> GetSemestersByProgrammeAndInstname(string programme, string institute);
     public Task<InstituteSenpai> GetInstituteByInstcode(short? instcode);
     public Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode);
 }

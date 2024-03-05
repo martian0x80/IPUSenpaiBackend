@@ -74,9 +74,47 @@ public class IPUSenpaiController : ControllerBase
     
     [HttpGet]
     [Route("batches/programme={programme}&institute={institute}")]
-    public async Task<List<short?>> GetBatches(string programme, string institute)
+    public async Task<Dictionary<string, short?>> GetBatches(string programme, string institute)
     {
-        return await _api.GetBatchesByPrognameAndInstname(programme, institute);
+        Dictionary<string, int> courseDurations = new Dictionary<string, int>()
+        {
+            ["BACHELOR OF ARTS"] = 3,
+            ["BACHELOR OF ARTS HONOURS"] = 4,
+            ["BACHELOR OF AUDIOLOGY AND SPEECH LANGUAGE PATHOLOGY"] = 4,
+            ["BACHELOR OF BUSINESS ADMINISTRATION"] = 3,
+            ["BACHELOR OF COMMERCE"] = 3,
+            ["BACHELOR OF COMPUTER APPLICATIONS"] = 3,
+            ["BACHELOR OF EDUCATION"] = 4,
+            ["BACHELOR OF TECHNOLOGY"] = 4,
+            ["I HAVE NO IDEA?"] = -1, // Use -1 or any placeholder value for unknown durations
+            ["INTEGRATED"] = 5,
+            ["MASTER OF BUSINESS ADMINISTRATION"] = 2,
+            ["MASTER OF COMPUTER APPLICATIONS"] = 2,
+            ["MASTER OF TECHNOLOGY"] = 2
+        };
+        var batches = await _api.GetBatchesByPrognameAndInstname(programme, institute);
+        var batchMap = new Dictionary<string, short?>();
+        
+        if (courseDurations.ContainsKey(programme))
+        {
+            int duration = courseDurations[programme];
+            for (int i = 0; i < batches.Count; i++)
+            {
+                if (batches[i] != null)
+                {
+                    batchMap.Add($"{batches[i]}-{((short)(batches[i] + duration))}", batches[i]);
+                }
+            }
+        }
+
+        return batchMap;
+    }
+    
+    [HttpGet]
+    [Route("semesters/programme={programme}&institute={institute}")]
+    public async Task<List<short>> GetSemesters(string programme, string institute)
+    {
+        return await _api.GetSemestersByProgrammeAndInstname(programme, institute);
     }
     
     [HttpGet]

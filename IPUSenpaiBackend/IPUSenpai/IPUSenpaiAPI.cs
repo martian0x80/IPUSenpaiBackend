@@ -88,6 +88,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         var programmes = await _context.Programmes
             .GroupBy(p => p.Prog)
             .Select(p => p.Key)
+            .OrderBy(p => p)
             .Take(limit)
             .ToListAsync();
         if (programmes.Count == 0)
@@ -199,6 +200,18 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return programme;
     }
     
+    public async Task<List<short>> GetSemestersByProgrammeAndInstname(string programme, string institute)
+    {
+        var semesters = await _context.Results
+            .Include(r => r.EnrolnoNavigation)
+            .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme && r.EnrolnoNavigation.InstcodeNavigation.Instname == institute)
+            .Select(r => r.Semester)
+            .Distinct()
+            .OrderBy(r => r)
+            .ToListAsync();
+            
+        return semesters;
+    }
     
     // public async Task<List<StudentSenpai>> GetStudentsByInstitute(string? institute)
     // {
