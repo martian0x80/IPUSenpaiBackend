@@ -97,17 +97,29 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return programmes;
     }
     
-    public async Task<Dictionary<string, string>> GetSpecializationsByProgramme(short limit = 30, string? prog = "")
+    public async Task<Dictionary<string, string>> GetSpecializationsByProgrammeAndInstname(short limit = 30, string? prog = "BACHELOR OF TECHNOLOGY", string? instname = "University School of Information & Communication Technology")
     {
-        var specializations = await _context.Programmes
-        .Where(p => p.Prog == prog)
-        .Select(p => new
-        {
-            p.Spec,
-            p.Progcode
-        })
-        .Take(limit)
-        .ToDictionaryAsync(p => p.Spec, p => p.Progcode);
+        // var specializations = await _context.Programmes
+        // .Where(p => p.Prog == prog)
+        // .Select(p => new
+        // {
+        //     p.Spec,
+        //     p.Progcode
+        // })
+        // .Take(limit)
+        // .ToDictionaryAsync(p => p.Spec, p => p.Progcode);
+        
+        var specializations = await _context.ProgrammesInstitutes
+            .Where(pi => pi.ProgcodeNavigation.Prog == prog && pi.InstcodeNavigation.Instname == instname)
+            .Select(pi => new
+            {
+                pi.ProgcodeNavigation!.Spec,
+                pi.Progcode
+            })
+            .Distinct()
+            .OrderBy(spec => spec.Spec)
+            .ToDictionaryAsync(spec => spec.Spec, spec => spec.Progcode);
+        
         if (specializations.Count == 0)
         {
             specializations.Add("No specializations found", "0");

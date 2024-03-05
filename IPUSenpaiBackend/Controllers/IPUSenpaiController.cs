@@ -59,10 +59,10 @@ public class IPUSenpaiController : ControllerBase
     }
     
     [HttpGet]
-    [Route("specializations/programme={programme}/{limit?}")]
-    public async Task<Dictionary<string, string>> GetSpecializations(string programme, short limit = 100)
+    [Route("specializations/programme={programme}&institue={instname}/{limit?}")]
+    public async Task<Dictionary<string, string>> GetSpecializations(string programme, string instname, short limit = 100)
     {
-        return await _api.GetSpecializationsByProgramme(limit, programme);
+        return await _api.GetSpecializationsByProgrammeAndInstname(limit, programme, instname);
     }
     
     [HttpGet]
