@@ -39,42 +39,42 @@ public class IPUSenpaiController : ControllerBase
     
     [HttpGet]
     [Route("programmes/{limit?}")]
-    public async Task<List<String?>> GetProgrammes(short limit = 79)
+    public async Task<List<PartialResponse>> GetProgrammes(short limit = 79)
     {
         return await _api.GetProgrammes(limit);
     }
     
     [HttpGet]
     [Route("institutes/{limit?}")]
-    public async Task<Dictionary<string?, short>> GetInstitutes(short limit = 50)
+    public async Task<List<Response>> GetInstitutes(short limit = 50)
     {
         return await _api.GetInstitutes(limit);
     }
     
     [HttpGet]
     [Route("institutes/programme={programme}/{limit?}")]
-    public async Task<List<string?>> GetInstitutes(string programme, short limit = 100)
+    public async Task<List<PartialResponse>> GetInstitutes(string programme, short limit = 100)
     {
         return await _api.GetInstitutesByProgramme(programme, limit);
     }
     
     [HttpGet]
     [Route("specializations/programme={programme}&institute={instname}/{limit?}")]
-    public async Task<Dictionary<string, string>> GetSpecializations(string programme, string instname, short limit = 100)
+    public async Task<List<Response>> GetSpecializations(string programme, string instname, short limit = 100)
     {
         return await _api.GetSpecializationsByProgrammeAndInstname(limit, programme, instname);
     }
     
     [HttpGet]
     [Route("institute/shifts/{instname}")]
-    public Task<Dictionary<string, short>> GetInstituteShifts(string instname)
+    public Task<List<Response>> GetInstituteShifts(string instname)
     {
         return _api.GetInstituteCodesForShifts(instname);
     }
     
     [HttpGet]
     [Route("batches/programme={programme}&institute={institute}")]
-    public async Task<Dictionary<string, short?>> GetBatches(string programme, string institute)
+    public async Task<List<Response>> GetBatches(string programme, string institute)
     {
         Dictionary<string, int> courseDurations = new Dictionary<string, int>()
         {
@@ -93,7 +93,7 @@ public class IPUSenpaiController : ControllerBase
             ["MASTER OF TECHNOLOGY"] = 2
         };
         var batches = await _api.GetBatchesByPrognameAndInstname(programme, institute);
-        var batchMap = new Dictionary<string, short?>();
+        var batchMap = new List<Response>();
         
         if (courseDurations.ContainsKey(programme))
         {
@@ -102,7 +102,12 @@ public class IPUSenpaiController : ControllerBase
             {
                 if (batches[i] != null)
                 {
-                    batchMap.Add($"{batches[i]}-{((short)(batches[i] + duration))}", batches[i]);
+                    batchMap.Add(new Response
+                    {
+                        Name = $"{batches[i]}-{((short)(batches[i] + duration))}",
+                        Value = batches[i].ToString()
+                    
+                    });
                 }
             }
         }
@@ -112,7 +117,7 @@ public class IPUSenpaiController : ControllerBase
     
     [HttpGet]
     [Route("semesters/programme={programme}&institute={institute}")]
-    public async Task<List<short>> GetSemesters(string programme, string institute)
+    public async Task<List<PartialResponse>> GetSemesters(string programme, string institute)
     {
         return await _api.GetSemestersByProgrammeAndInstname(programme, institute);
     }

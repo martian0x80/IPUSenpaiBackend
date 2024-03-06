@@ -40,7 +40,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return student;
     }
     
-    public async Task<Dictionary<string?, short>> GetInstitutes(short limit = 100)
+    public async Task<List<Response>> GetInstitutes(short limit = 100)
     {
         /*
          * select instname, count(*) from institute inner join student on student.instcode=institute.instcode group by institute.instname having count(*) > 100 order by count(*) desc;
@@ -50,12 +50,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             .GroupBy(s => s.InstcodeNavigation.Instname)
             .Where(s => s.Count() > 100)
             .OrderByDescending(s => s.Count())
-            .Select(s => new
+            .Select(s => new Response
             {
-                Instname = s.Key,
-                Instcode = s.FirstOrDefault().InstcodeNavigation.Instcode
+                Name = s.Key,
+                Value = s.FirstOrDefault().InstcodeNavigation.Instcode.ToString()
             })
-            .ToDictionaryAsync(s => s.Instname, s => s.Instcode);
+            .ToListAsync();
         // Total 107 unique institutes
         // var institutes = (from s in _context.Institutes
         //     join i in _context.Students on s.Instcode equals i.Instcode
@@ -66,39 +66,53 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return institutes;
     }
     
-    public async Task<List<string?>> GetInstitutesByProgramme(string programme, short limit = 100)
+    public async Task<List<PartialResponse>> GetInstitutesByProgramme(string programme, short limit = 100)
     {
         var programmes = await _context.ProgrammesInstitutes
             .Include(pi => pi.InstcodeNavigation)
             .Where(pi => pi.ProgcodeNavigation.Prog == programme)
-            .Select(pi => pi.InstcodeNavigation.Instname)
+            .OrderBy(pi => pi.InstcodeNavigation.Instname)
+            .Select(pi => new PartialResponse
+            {
+                Name = pi.InstcodeNavigation.Instname
+            })
             .Distinct()
-            .OrderBy(instname => instname)
+            // .OrderBy(instname => instname.Name)
             .ToListAsync();
 
         if (programmes.Count == 0)
         {
-            programmes.Add("No programmes found");
+            programmes.Add(new PartialResponse
+            {
+                Name = "No institutes found",
+            });
         }
         return programmes;
     }
 
-    public async Task<List<string?>> GetProgrammes(short limit = 79)
+    public async Task<List<PartialResponse>> GetProgrammes(short limit = 79)
     {
         var programmes = await _context.Programmes
             .GroupBy(p => p.Prog)
-            .Select(p => p.Key)
-            .OrderBy(p => p)
+            .OrderBy(p => p.Key)
+            .Select(p => new PartialResponse
+            {
+                Name = p.Key
+            })
+            // .OrderBy(p => p.Name)
             .Take(limit)
             .ToListAsync();
         if (programmes.Count == 0)
         {
-            programmes.Add("No programmes found");
+            programmes.Add(new PartialResponse
+            {
+                Name = "No programmes found",
+            });
         }
         return programmes;
     }
     
-    public async Task<Dictionary<string, string>> GetSpecializationsByProgrammeAndInstname(short limit = 30, string? prog = "BACHELOR OF TECHNOLOGY", string? instname = "University School of Information & Communication Technology")
+    public async Task<List<Response>> GetSpecializationsByProgrammeAndInstname(short limit = 30, string? prog = "BACHELOR OF TECHNOLOGY", string? instname = "University School of Information & Communication Technology")
     {
         // var specializations = await _context.Programmes
         // .Where(p => p.Prog == prog)
@@ -109,26 +123,33 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         // })
         // .Take(limit)
         // .ToDictionaryAsync(p => p.Spec, p => p.Progcode);
-        
+
         var specializations = await _context.ProgrammesInstitutes
             .Where(pi => pi.ProgcodeNavigation.Prog == prog && pi.InstcodeNavigation.Instname == instname)
-            .Select(pi => new
+            .OrderBy(pi => pi.ProgcodeNavigation.Spec)
+            .Select(pi => new Response
             {
-                pi.ProgcodeNavigation!.Spec,
-                pi.Progcode
+                Name = pi.ProgcodeNavigation!.Spec,
+                Value = pi.Progcode
             })
             .Distinct()
-            .OrderBy(spec => spec.Spec)
-            .ToDictionaryAsync(spec => spec.Spec, spec => spec.Progcode);
+            .ToListAsync();
         
         if (specializations.Count == 0)
         {
-            specializations.Add("No specializations found", "0");
+            return new List<Response>
+            {
+                new Response
+                {
+                    Name = "No specializations found",
+                    Value = "No specializations found"
+                }
+            };
         }
         return specializations;
     }
     
-    public async Task<Dictionary<string, short>> GetInstituteCodesForShifts(string instname)
+    public async Task<List<Response>> GetInstituteCodesForShifts(string instname)
     {
         var institutes = await _context.Institutes
         .Where(i => i.Instname == instname)
@@ -136,7 +157,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         .OrderBy(s => s)
         .ToListAsync();
         
-        Dictionary<string, short> shifts = new();
+        List<Response> shifts = new();
         
         /*
          * Assign shifts to each institute code, the smallest institute code gets the morning shift
@@ -145,17 +166,28 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
          */
         if (institutes.Count > 0)
         {
-            shifts.Add("Morning", institutes[0]);
+            shifts.Add(new Response
+            {
+                Name = "Morning",
+                Value = institutes[0].ToString()
+            });
             if (institutes.Count > 1)
             {
-                shifts.Add("Evening", institutes[1]);
+                shifts.Add(new Response
+                {
+                    Name = "Evening",
+                    Value = institutes[1].ToString()
+                });
             }
             if (institutes.Count > 2)
             {
-                shifts.Add("Other", institutes[2]);
+                shifts.Add(new Response
+                {
+                    Name = "Other",
+                    Value = institutes[2].ToString()
+                });
             }
         }
-        
         return shifts;
     }
 
@@ -200,14 +232,17 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return programme;
     }
     
-    public async Task<List<short>> GetSemestersByProgrammeAndInstname(string programme, string institute)
+    public async Task<List<PartialResponse>> GetSemestersByProgrammeAndInstname(string programme, string institute)
     {
         var semesters = await _context.Results
             .Include(r => r.EnrolnoNavigation)
             .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme && r.EnrolnoNavigation.InstcodeNavigation.Instname == institute)
-            .Select(r => r.Semester)
             .Distinct()
-            .OrderBy(r => r)
+            .OrderBy(r => r.Semester)
+            .Select(r => new PartialResponse
+            {
+                Name = r.Semester.ToString()
+            })
             .ToListAsync();
             
         return semesters;
