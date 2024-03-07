@@ -237,12 +237,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         var semesters = await _context.Results
             .Include(r => r.EnrolnoNavigation)
             .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme && r.EnrolnoNavigation.InstcodeNavigation.Instname == institute)
-            .Distinct()
-            .OrderBy(r => r.Semester)
+            .GroupBy(r => r.Semester)
             .Select(r => new PartialResponse
             {
-                Name = r.Semester.ToString()
+                Name = r.Key.ToString()
             })
+            .OrderBy(r => r.Name)
             .ToListAsync();
             
         return semesters;
@@ -268,6 +268,23 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
     //     
     //     return students;
     // }
+    
+    /* Get the total marks and max marks for each semester
+     *
+     * SELECT r.semester, 
+              SUM(r.total) AS total_sum, 
+              SUM(s.maxmarks_sum) AS maxmarks_sum
+       FROM results r
+       INNER JOIN LATERAL (
+           SELECT subcode, enrolno, semester, MODE() WITHIN GROUP (ORDER BY maxmarks) AS maxmarks_sum
+           FROM subjects
+           WHERE enrolno = '01096202722' AND subcode = r.subcode
+           GROUP BY subcode, enrolno, semester
+       ) s ON true
+       WHERE r.enrolno = '01096202722'
+       GROUP BY r.semester;
+       
+     */
     
 
 }
