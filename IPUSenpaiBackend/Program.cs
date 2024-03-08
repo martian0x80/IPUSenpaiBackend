@@ -24,7 +24,7 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Services.AddDbContext<IPUSenpaiDBContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("CONNSTR")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("CONNSTR")), ServiceLifetime.Scoped);
 
 builder.Services.AddRateLimiter(s =>
 {

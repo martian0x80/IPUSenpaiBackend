@@ -1,6 +1,8 @@
 using IPUSenpaiBackend.IPUSenpai;
 using IPUSenpaiBackend.CustomEntities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
 // using Microsoft.AspNetCore.RateLimiting;
 
 namespace IPUSenpaiBackend.Controllers;
@@ -120,6 +122,14 @@ public class IPUSenpaiController : ControllerBase
     public async Task<List<PartialResponse>> GetSemesters(string programme, string institute)
     {
         return await _api.GetSemestersByProgrammeAndInstname(programme, institute);
+    }
+    
+    [HttpGet]
+    [Route("rank/")]
+    public List<RankSenpaiSemester> GetRank()
+    {
+        return _api.GetRanklistBySemester("962", "027", "2022", "1");
+        //return "Not implemented yet";
     }
     
     [HttpGet]

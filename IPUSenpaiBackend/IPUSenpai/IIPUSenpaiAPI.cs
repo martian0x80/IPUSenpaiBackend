@@ -15,4 +15,6 @@ public interface IIPUSenpaiAPI
     public Task<List<PartialResponse>> GetSemestersByProgrammeAndInstname(string programme, string institute);
     public Task<InstituteSenpai> GetInstituteByInstcode(short? instcode);
     public Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode);
+
+    public List<RankSenpaiSemester> GetRanklistBySemester(string instcode, string progcode, string batch, string sem);
 }
