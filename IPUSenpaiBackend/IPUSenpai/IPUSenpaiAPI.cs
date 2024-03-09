@@ -1,3 +1,4 @@
+using System.Globalization;
 using IPUSenpaiBackend.CustomEntities;
 using IPUSenpaiBackend.DBContext;
 using Microsoft.EntityFrameworkCore;
@@ -300,7 +301,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         g.Key.Maxmarks,
         //         g.Key.Credits
         //     }).ToListAsync();
-        
+        _context.ChangeTracker.LazyLoadingEnabled = false;
         var subjects = await (from r in _context.Results.AsNoTracking()
             where r.Enrolno == enrollment
             join s in _context.Subjects on r.Subcode equals s.Subcode
@@ -583,8 +584,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 Enrollment = r.Enrolno,
                 Name = r.Name,
-                MarksPerSemester = new Dictionary<short, Dictionary<string, int>>(),
-                Sgpa = new Dictionary<short, float>(),
+                MarksPerSemester = new List<Dictionary<string, int>>(),
+                Sgpa = new List<Dictionary<string, string>>(),
                 Semesters = r.Semester.Count
             };
             
@@ -607,8 +608,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             int totalcreditmarksweighted = 0; // Total marks weighted by grade points
             int totalcreditmarks = 0; // Max marks
             float weightedsgpa = 0;
-            Dictionary<short, float> sgpapersemester = new();
-            Dictionary<short, float> sgpapersemesterweighted = new();
+            List<Dictionary<string, string>> sgpapersemester = new();
 
             foreach (var s in r.Semester)
             {
@@ -641,19 +641,23 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 totalcreditmarksweighted += semestercreditmarksweighted;
                 totalcreditmarks += semestercreditmarksmax;
                 totalcredits += semestercredits;
-                sgpapersemester[s.Semester] = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits);
-                var sgpa = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits) * semestercredits;
-                weightedsgpa += sgpa;
-                rank.Sgpa[s.Semester] = sgpa;
-                rank.MarksPerSemester[s.Semester] = new Dictionary<string, int>
+                var sgpa = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits);
+                weightedsgpa += sgpa * semestercredits;
+                rank.Sgpa.Add(new Dictionary<string, string>
                 {
+                    ["semester"] = s.Semester.ToString(),
+                    ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture)
+                });
+                rank.MarksPerSemester.Add(new Dictionary<string, int>
+                {
+                    ["semester"] = s.Semester,
                     ["marks"] = semestermarks,
                     ["total"] = semestertotal,
                     ["creditmarks"] = semestercreditmarks,
                     ["totalcreditmarks"] = semestercreditmarksmax,
                     ["totalcredits"] = semestercredits,
                     ["totalcreditmarksweighted"] = semestercreditmarksweighted
-                };
+                });
             }
 
             rank.Marks = marks;
@@ -665,7 +669,6 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
-            rank.Sgpa = sgpapersemester;
             
             ranklist.Add(rank);
         }
