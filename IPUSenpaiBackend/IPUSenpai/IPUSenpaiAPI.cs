@@ -370,8 +370,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         return ExamType.Regular;
     }
-    
-    public List<RankSenpaiSemester> GetRanklistBySemester(string instcode, string progcode, string batch, string sem, int pageNumber = 1, int pageSize = 10)
+
+    public List<RankSenpaiSemester> GetRanklistBySemester(string instcode, string progcode, string batch, string sem,
+        int pageNumber = 1, int pageSize = 10)
     {
         Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}");
         /*
@@ -429,7 +430,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 r.Resultdate
             }).ToList();
 
-        
+
         // Group the data locally
         var groupedResult = results.GroupBy(g => g.Enrolno)
             .Select(g => new
@@ -439,22 +440,23 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Subs = g.GroupBy(s => s.Subcode)
                     .Select(subGroup => subGroup.OrderBy(s => GetExamType(s.Exam)).First())
                     .Select(s => new
-                {
-                    Subcode = s.Subcode,
-                    Internal = s.Internal,
-                    External = s.External,
-                    Total = s.Total,
-                    Exam = s.Exam,
-                    ExamType = GetExamType(s.Exam)
-                }),
+                    {
+                        Subcode = s.Subcode,
+                        Internal = s.Internal,
+                        External = s.External,
+                        Total = s.Total,
+                        Exam = s.Exam,
+                        ExamType = GetExamType(s.Exam)
+                    }),
                 Semester = g.Select(s => s.Semester).FirstOrDefault(),
                 Resultdate = g.Select(s => s.Resultdate).FirstOrDefault()
-            }).ToList();
-        
+            }).Skip(pageNumber * pageSize).Take(pageSize).ToList();
+
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
-        
+
         List<RankSenpaiSemester> ranklist = new();
-        foreach (var r in groupedResult)
+        object subjectLock = new();
+        Parallel.ForEach(groupedResult, r =>
         {
             RankSenpaiSemester rank = new()
             {
@@ -468,15 +470,20 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             int totalcredits = 0;
             int totalcreditmarksweighted = 0;
             int totalcreditmarks = 0;
-            foreach (var i in r.Subs)
+
+            Parallel.ForEach(r.Subs, s =>
             {
-                if (!subject.ContainsKey(i.Subcode))
+                if (!subject.ContainsKey(s.Subcode))
                 {
-                    subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                    lock (subjectLock)
+                    {
+                        if (!subject.ContainsKey(s.Subcode))
+                        {
+                            subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                        }
+                    }
                 }
-            }
-            foreach (var s in r.Subs)
-            {
+
                 marks += s.Total ?? 0;
                 try
                 {
@@ -506,9 +513,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 {
                     // If key is not found retry
                     Console.Out.WriteLine($"Key not found: {s.Subcode}\n {r.Enrolno} {r.Name}");
-                    
+
                 }
-            }
+            });
 
             rank.Marks = marks;
             rank.Total = total;
@@ -519,14 +526,15 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Sgpa = MathSenpai.GetSgpa(totalcreditmarksweighted, totalcredits);
-            
-            ranklist.Add(rank);
-        }
 
-        return ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList();
+            ranklist.Add(rank);
+        });
+
+        return ranklist;
     }
-    
-    public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch, int pageNumber = 1, int pageSize = 10)
+
+    public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch,
+        int pageNumber = 1, int pageSize = 10)
     {
         Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: Overall");
 
@@ -549,7 +557,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 r.Resultdate
             }).ToList();
 
-        
+
         // Group the data locally
         var groupedResult = results.GroupBy(g => g.Enrolno)
             .Select(g => new
@@ -572,13 +580,14 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                                 ExamType = GetExamType(sub.Exam)
                             })
                     }).ToList()
-            }).ToList();
-        
+            }).Skip(pageNumber * pageSize).Take(pageSize).ToList();
+
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
-        
+
         List<RankSenpaiOverall> ranklist = new();
-        
-        foreach (var r in groupedResult)
+        object subjectLock = new();
+
+        Parallel.ForEach(groupedResult, r =>
         {
             RankSenpaiOverall rank = new()
             {
@@ -588,29 +597,28 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Sgpa = new List<Dictionary<string, string>>(),
                 Semesters = r.Semester.Count
             };
-            
+
             // Check if the subject is present in the subject list
-            foreach (var s in r.Semester)
-            {
-                foreach (var sub in s.Subs)
-                {
-                    if (!subject.ContainsKey(sub.Subcode))
-                    {
-                        subject = GetSubjectsByEnrollment(r.Enrolno).Result;
-                    }
-                }
-            }
-            
+            // foreach (var s in r.Semester)
+            // {
+            //     foreach (var sub in s.Subs)
+            //     {
+            //         if (!subject.ContainsKey(sub.Subcode))
+            //         {
+            //             subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+            //         }
+            //     }
+            // }
+
             int marks = 0;
             int total = 0;
-            int creditmarks = 0;    // Total marks weighted by credits
-            int totalcredits = 0;  // Total credits
+            int creditmarks = 0; // Total marks weighted by credits
+            int totalcredits = 0; // Total credits
             int totalcreditmarksweighted = 0; // Total marks weighted by grade points
             int totalcreditmarks = 0; // Max marks
             float weightedsgpa = 0;
-            List<Dictionary<string, string>> sgpapersemester = new();
 
-            foreach (var s in r.Semester)
+            Parallel.ForEach(r.Semester, s =>
             {
                 int semestermarks = 0;
                 int semestertotal = 0;
@@ -618,23 +626,38 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 int semestercredits = 0;
                 int semestercreditmarksweighted = 0;
                 int semestercreditmarksmax = 0;
-                foreach (var sub in s.Subs)
+                Parallel.ForEach(s.Subs, sub =>
                 {
+
+                    if (!subject.ContainsKey(sub.Subcode))
+                    {
+                        lock (subjectLock)
+                        {
+                            if (!subject.ContainsKey(sub.Subcode))
+                            {
+                                subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                            }
+                        }
+                    }
+
                     try
                     {
+                        var maxmarks = int.Parse(subject[sub.Subcode]["maxmarks"]);
+                        var credits = int.Parse(subject[sub.Subcode]["credits"]);
                         semestermarks += sub.Total ?? 0;
-                        semestertotal += int.Parse(subject[sub.Subcode]["maxmarks"]);
-                        semestercreditmarks += int.Parse(subject[sub.Subcode]["credits"]) * sub.Total ?? 0;
-                        semestercreditmarksweighted += int.Parse(subject[sub.Subcode]["credits"]) *
-                                                  MathSenpai.GetGradePoint(sub.Total ?? 0);
-                        semestercreditmarksmax += int.Parse(subject[sub.Subcode]["credits"]) * int.Parse(subject[sub.Subcode]["maxmarks"]);
-                        semestercredits += int.Parse(subject[sub.Subcode]["credits"]);
+                        semestertotal += maxmarks;
+                        semestercreditmarks += credits * sub.Total ?? 0;
+                        semestercreditmarksweighted += credits *
+                                                       MathSenpai.GetGradePoint(sub.Total ?? 0);
+                        semestercreditmarksmax += credits * maxmarks;
+                        semestercredits += credits;
                     }
                     catch (KeyNotFoundException e)
                     {
                         Console.Out.WriteLine($"Key not found: {sub.Subcode}\n {r.Enrolno} {r.Name}");
                     }
-                }
+                });
+
                 marks += semestermarks;
                 total += semestertotal;
                 creditmarks += semestercreditmarks;
@@ -658,7 +681,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     ["totalcredits"] = semestercredits,
                     ["totalcreditmarksweighted"] = semestercreditmarksweighted
                 });
-            }
+            });
 
             rank.Marks = marks;
             rank.Total = total;
@@ -669,11 +692,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
-            
-            ranklist.Add(rank);
-        }
 
-        return ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList();
+            ranklist.Add(rank);
+        });
+    return ranklist;
     }
     
 }
