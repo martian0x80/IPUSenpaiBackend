@@ -134,10 +134,10 @@ public class IPUSenpaiController : ControllerBase
     }
     
     [HttpGet]
-    [Route("rank/instcode={instcode}&progcode={progcode}&batch={batch}")]
-    public List<RankSenpaiOverall> GetRank(string instcode, string progcode, string batch)
+    [Route("rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}")]
+    public List<RankSenpaiOverall> GetRank(string instcode, string progcode, string batch, int pageNumber, int pageSize)
     {
-        return _api.GetRanklistOverall(instcode, progcode, batch);
+        return _api.GetRanklistOverall(instcode, progcode, batch, pageNumber, pageSize);
     }
     
     [HttpGet]

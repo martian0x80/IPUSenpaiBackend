@@ -53,9 +53,9 @@ public class MathSenpai
         return (float)totalCreditsMarksWeighted / totalCredits;
     }
     
-    public static float GetCgpa(int totalCreditsMarksWeighted, int totalCreditsOverall)
+    public static float GetCgpa(float weightedsgpa, int totalCreditsOverall)
     {
-        return (float)totalCreditsMarksWeighted / totalCreditsOverall;
+        return (float)weightedsgpa / totalCreditsOverall;
     }
     
 }

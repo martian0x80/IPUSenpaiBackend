@@ -13,7 +13,9 @@ public class RankSenpaiOverall
     public float Cgpa { get; set; }
     public float Percentage { get; set; }
     public float CreditsPercentage { get; set; }
-    public List<Dictionary<string, string>>? Semester { get; set; }
+    public int Semesters { get; set; }
+    public Dictionary<short, float> Sgpa { get; set; }
+    public Dictionary<short, Dictionary<string, int>> MarksPerSemester { get; set; }
 }
 
 public class RankSenpaiSemester

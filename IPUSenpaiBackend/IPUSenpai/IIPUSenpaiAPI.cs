@@ -16,5 +16,5 @@ public interface IIPUSenpaiAPI
     public Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode);
 
     public List<RankSenpaiSemester> GetRanklistBySemester(string instcode, string progcode, string batch, string sem, int pageNumber, int pageSize);
-    public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch);
+    public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch, int pageNumber, int pageSize);
 }

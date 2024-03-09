@@ -356,7 +356,6 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         [StringValue("REGULAR")]
         Regular,
     }
-
     
     private ExamType GetExamType(string exam)
     {
@@ -526,7 +525,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList();
     }
     
-    public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch)
+    public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch, int pageNumber = 1, int pageSize = 10)
     {
         Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: Overall");
 
@@ -557,69 +556,121 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Enrolno = g.Key,
                 Name = g.Select(s => s.Name).FirstOrDefault(),
                 Semester = g.GroupBy(s => s.Semester)
-                    .Select(subGroup => subGroup.OrderBy(s => s.Semester).First())
-                    .GroupBy(s => s.Subcode)
-                    .Select(subGroup => subGroup.OrderBy(s => GetExamType(s.Exam)).First())
                     .Select(s => new
                     {
-                        Semester = s.Semester,
-                        Subcode = s.Subcode,
-                        Internal = s.Internal,
-                        External = s.External,
-                        Total = s.Total,
-                        Exam = s.Exam,
-                        ExamType = GetExamType(s.Exam)
-                    }),
-                Resultdate = g.Select(s => s.Resultdate).FirstOrDefault()
+                        Semester = s.Key,
+                        Subs = s.GroupBy(sub => sub.Subcode)
+                            .Select(subGroup => subGroup.OrderBy(sub => GetExamType(sub.Exam)).First())
+                            .Select(sub => new
+                            {
+                                Subcode = sub.Subcode,
+                                Internal = sub.Internal,
+                                External = sub.External,
+                                Total = sub.Total,
+                                Exam = sub.Exam,
+                                ExamType = GetExamType(sub.Exam)
+                            })
+                    }).ToList()
             }).ToList();
         
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
-        foreach (var i in groupedResult[8].Semester)
-        {
-            Console.Out.WriteLine($"{i.Semester} {i.ExamType.StringValue()}");
-        }
+        
         List<RankSenpaiOverall> ranklist = new();
-        // foreach (var r in groupedResult)
-        // {IRankSenpai
-        //     RankSenpaiOverall rank = new()
-        //     {
-        //         Enrollment = r.Enrolno,
-        //         Name = r.Name,
-        //         Semester = new List<Dictionary<string, string>>()
-        //     };
-        //     int marks = 0;
-        //     int total = 0;
-        //     int creditmarks = 0;    // Total marks weighted by credits
-        //     int totalcredits = 0;  // Total credits
-        //     int totalcreditmarksweighted = 0; // Total marks weighted by grade points
-        //     int totalcreditmarks = 0; // Max marks
-        //     Dictionary<string, int> creditspersemester = new();
-        //     Dictionary<string, int> sgpapersemester = new();
-        //     
-        //     foreach (var s in r.Subs)
-        //     {
-        //         
-        //         marks += s.Total ?? 0;
-        //         total += int.Parse(subject[s.Subcode]["maxmarks"]);
-        //         creditmarks += int.Parse(subject[s.Subcode]["credits"]) * s.Total ?? 0;
-        //         totalcreditmarksweighted += int.Parse(subject[s.Subcode]["credits"]) * MathSenpai.GetGradePoint(s.Total ?? 0);
-        //         totalcreditmarks += int.Parse(subject[s.Subcode]["credits"]) * int.Parse(subject[s.Subcode]["maxmarks"]);
-        //         totalcredits += int.Parse(subject[s.Subcode]["credits"]);
-        //         
-        //     }
-        //     rank.Marks = marks;
-        //     rank.Total = total;
-        //     rank.CreditMarks = creditmarks;
-        //     rank.TotalCredits = totalcredits;
-        //     rank.TotalCreditMarks = totalcreditmarks;
-        //     rank.Percentage = (float)marks / total * 100;
-        //     rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
-        //     rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
-        //     rank.Cgpa = MathSenpai.GetCgpa(totalcreditmarksweighted, totalcredits);
-        //     
-        //     ranklist.Add(rank);
-        // }
+        
+        foreach (var r in groupedResult)
+        {
+            RankSenpaiOverall rank = new()
+            {
+                Enrollment = r.Enrolno,
+                Name = r.Name,
+                MarksPerSemester = new Dictionary<short, Dictionary<string, int>>(),
+                Sgpa = new Dictionary<short, float>(),
+                Semesters = r.Semester.Count
+            };
+            
+            // Check if the subject is present in the subject list
+            foreach (var s in r.Semester)
+            {
+                foreach (var sub in s.Subs)
+                {
+                    if (!subject.ContainsKey(sub.Subcode))
+                    {
+                        subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                    }
+                }
+            }
+            
+            int marks = 0;
+            int total = 0;
+            int creditmarks = 0;    // Total marks weighted by credits
+            int totalcredits = 0;  // Total credits
+            int totalcreditmarksweighted = 0; // Total marks weighted by grade points
+            int totalcreditmarks = 0; // Max marks
+            float weightedsgpa = 0;
+            Dictionary<short, float> sgpapersemester = new();
+            Dictionary<short, float> sgpapersemesterweighted = new();
 
-        return new List<RankSenpaiOverall>();
+            foreach (var s in r.Semester)
+            {
+                int semestermarks = 0;
+                int semestertotal = 0;
+                int semestercreditmarks = 0;
+                int semestercredits = 0;
+                int semestercreditmarksweighted = 0;
+                int semestercreditmarksmax = 0;
+                foreach (var sub in s.Subs)
+                {
+                    try
+                    {
+                        semestermarks += sub.Total ?? 0;
+                        semestertotal += int.Parse(subject[sub.Subcode]["maxmarks"]);
+                        semestercreditmarks += int.Parse(subject[sub.Subcode]["credits"]) * sub.Total ?? 0;
+                        semestercreditmarksweighted += int.Parse(subject[sub.Subcode]["credits"]) *
+                                                  MathSenpai.GetGradePoint(sub.Total ?? 0);
+                        semestercreditmarksmax += int.Parse(subject[sub.Subcode]["credits"]) * int.Parse(subject[sub.Subcode]["maxmarks"]);
+                        semestercredits += int.Parse(subject[sub.Subcode]["credits"]);
+                    }
+                    catch (KeyNotFoundException e)
+                    {
+                        Console.Out.WriteLine($"Key not found: {sub.Subcode}\n {r.Enrolno} {r.Name}");
+                    }
+                }
+                marks += semestermarks;
+                total += semestertotal;
+                creditmarks += semestercreditmarks;
+                totalcreditmarksweighted += semestercreditmarksweighted;
+                totalcreditmarks += semestercreditmarksmax;
+                totalcredits += semestercredits;
+                sgpapersemester[s.Semester] = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits);
+                var sgpa = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits) * semestercredits;
+                weightedsgpa += sgpa;
+                rank.Sgpa[s.Semester] = sgpa;
+                rank.MarksPerSemester[s.Semester] = new Dictionary<string, int>
+                {
+                    ["marks"] = semestermarks,
+                    ["total"] = semestertotal,
+                    ["creditmarks"] = semestercreditmarks,
+                    ["totalcreditmarks"] = semestercreditmarksmax,
+                    ["totalcredits"] = semestercredits,
+                    ["totalcreditmarksweighted"] = semestercreditmarksweighted
+                };
+            }
+
+            rank.Marks = marks;
+            rank.Total = total;
+            rank.CreditMarks = creditmarks;
+            rank.TotalCredits = totalcredits;
+            rank.TotalCreditMarks = totalcreditmarks;
+            rank.Percentage = (float)marks / total * 100;
+            rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
+            rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
+            rank.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
+            rank.Sgpa = sgpapersemester;
+            
+            ranklist.Add(rank);
+        }
+
+        return ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList();
     }
+    
 }
