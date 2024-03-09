@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices.JavaScript;
 using IPUSenpaiBackend.CustomEntities;
 namespace IPUSenpaiBackend.IPUSenpai;
 
@@ -16,5 +15,6 @@ public interface IIPUSenpaiAPI
     public Task<InstituteSenpai> GetInstituteByInstcode(short? instcode);
     public Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode);
 
-    public List<RankSenpaiSemester> GetRanklistBySemester(string instcode, string progcode, string batch, string sem);
+    public List<RankSenpaiSemester> GetRanklistBySemester(string instcode, string progcode, string batch, string sem, int pageNumber, int pageSize);
+    public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch);
 }

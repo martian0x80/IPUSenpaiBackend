@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using IPUSenpaiBackend.IPUSenpai;
 using IPUSenpaiBackend.CustomEntities;
 using Microsoft.AspNetCore.Mvc;
@@ -119,17 +120,24 @@ public class IPUSenpaiController : ControllerBase
     
     [HttpGet]
     [Route("semesters/programme={programme}&institute={institute}")]
+    [SuppressMessage("ReSharper.DPA", "DPA0000: DPA issues")]
     public async Task<List<PartialResponse>> GetSemesters(string programme, string institute)
     {
         return await _api.GetSemestersByProgrammeAndInstname(programme, institute);
     }
     
     [HttpGet]
-    [Route("rank/")]
-    public List<RankSenpaiSemester> GetRank()
+    [Route("rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}")]
+    public List<RankSenpaiSemester> GetRankSem(string instcode, string progcode, string batch, string sem, int pageNumber, int pageSize)
     {
-        return _api.GetRanklistBySemester("962", "027", "2022", "1");
-        //return "Not implemented yet";
+        return _api.GetRanklistBySemester(instcode, progcode, batch, sem, pageNumber, pageSize);
+    }
+    
+    [HttpGet]
+    [Route("rank/instcode={instcode}&progcode={progcode}&batch={batch}")]
+    public List<RankSenpaiOverall> GetRank(string instcode, string progcode, string batch)
+    {
+        return _api.GetRanklistOverall(instcode, progcode, batch);
     }
     
     [HttpGet]
