@@ -452,7 +452,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     }),
                 Semester = g.Select(s => s.Semester).FirstOrDefault(),
                 Resultdate = g.Select(s => s.Resultdate).FirstOrDefault()
-            }).Skip(pageNumber * pageSize).Take(pageSize).ToList();
+            }).ToList();
         
         if (groupedResult.Count == 0)
         {
@@ -553,7 +553,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             ranklist.Add(rank);
         });
 
-        return ranklist;
+        return ranklist.OrderByDescending(r => r.Sgpa).Skip(pageNumber * pageSize).Take(pageSize).ToList();;
     }
 
     public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch,
@@ -603,7 +603,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                                 ExamType = GetExamType(sub.Exam)
                             })
                     }).ToList()
-            }).Skip(pageNumber * pageSize).Take(pageSize).ToList();
+            }).ToList();
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
 
@@ -718,7 +718,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
             ranklist.Add(rank);
         });
-    return ranklist;
+    return ranklist.OrderByDescending(r => r.Cgpa).Skip(pageNumber * pageSize).Take(pageSize).ToList();;
     }
     
 }
