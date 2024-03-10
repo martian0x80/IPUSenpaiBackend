@@ -226,9 +226,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
     {
         var batches = await _context.Students
             .Where(s => s.ProgcodeNavigation.Prog == programme && s.InstcodeNavigation.Instname == institute)
-            .Select(s => s.Batch)
-            .Distinct()
-            .OrderByDescending(s => s)
+            .GroupBy(s => s.Batch)
+            .OrderByDescending(s => s.Key)
+            .Select(s => s.Key)
             .ToListAsync();
         return batches;
     }
@@ -316,8 +316,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 g.Key.Papername,
                 g.Key.Passmarks,
                 g.Key.Maxmarks,
-                g.Key.Credits
+                g.Key.Credits,
             }).ToListAsync();
+
 
 
         return subjects.Select(g => new Dictionary<string, string>
@@ -328,7 +329,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             ["passmarks"] = g.Passmarks.ToString() ?? "40",
             ["maxmarks"] = g.Maxmarks.ToString() ?? "100",
             ["credits"] = g.Credits.ToString() ?? "0"
-        }).ToDictionary(g => g["subcode"], g => g);
+        }).GroupBy(g => g["subcode"]).ToDictionary(g => g.Key, g => g.First());
+        //    .ToDictionary(g => g["subcode"], g => g);
     }
     
     private enum ExamType
@@ -451,7 +453,28 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Semester = g.Select(s => s.Semester).FirstOrDefault(),
                 Resultdate = g.Select(s => s.Resultdate).FirstOrDefault()
             }).Skip(pageNumber * pageSize).Take(pageSize).ToList();
-
+        
+        if (groupedResult.Count == 0)
+        {
+            return new List<RankSenpaiSemester>
+            {
+                new RankSenpaiSemester
+                {
+                    Enrollment = "No results found",
+                    Name = "No results found",
+                    Marks = 0,
+                    Total = 0,
+                    CreditMarks = 0,
+                    TotalCredits = 0,
+                    TotalCreditMarks = 0,
+                    Percentage = 0,
+                    CreditsPercentage = 0,
+                    TotalCreditMarksWeighted = 0,
+                    Sgpa = 0,
+                    Subject = new List<Dictionary<string, string>>()
+                }
+            };
+        }
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
 
         List<RankSenpaiSemester> ranklist = new();
