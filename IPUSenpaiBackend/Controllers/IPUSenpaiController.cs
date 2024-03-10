@@ -79,6 +79,7 @@ public class IPUSenpaiController : ControllerBase
     [Route("batches/programme={programme}&institute={institute}")]
     public async Task<List<Response>> GetBatches(string programme, string institute)
     {
+
         Dictionary<string, int> courseDurations = new Dictionary<string, int>()
         {
             ["BACHELOR OF ARTS"] = 3,
@@ -89,12 +90,24 @@ public class IPUSenpaiController : ControllerBase
             ["BACHELOR OF COMPUTER APPLICATIONS"] = 3,
             ["BACHELOR OF EDUCATION"] = 4,
             ["BACHELOR OF TECHNOLOGY"] = 4,
-            ["I HAVE NO IDEA?"] = -1, // Use -1 or any placeholder value for unknown durations
+            ["I HAVE NO IDEA?"] = -1,
             ["INTEGRATED"] = 5,
             ["MASTER OF BUSINESS ADMINISTRATION"] = 2,
             ["MASTER OF COMPUTER APPLICATIONS"] = 2,
-            ["MASTER OF TECHNOLOGY"] = 2
+            ["MASTER OF TECHNOLOGY"] = 2,
+            ["MASTER OF ARCHITECTURE"] = 2, // Assuming a 2-year program
+            ["MASTER OF EDUCATION"] = 2, // Assuming a 2-year program
+            ["MASTER OF LAW"] = 2, // Assuming a 2-year program
+            ["POST GRADUATE DIPLOMA IN DATA ANALYTICS"] = 1, // Assuming a 1-year program
+            ["BACHELOR OF DESIGN"] = 4, // Assuming a 4-year program
+            ["BACHELOR OF SCIENCE"] = 3, // Assuming a 3-year program
+            ["FOUR-YEARS BACHELOR OF ARTS"] = 4,
+            ["MASTER OF PLANNING"] = 2, // Assuming a 2-year program
+            ["BACHELOR OF HOTEL MANAGEMENT AND CATERING TECHNOLOGY"] = 4, // Assuming a 4-year program
+            ["MASTER OF ARTS"] = 2, // Assuming a 2-year program
+            ["BACHELOR OF PHARMACY"] = 4, // Assuming a 4-year program
         };
+
         var batches = await _api.GetBatchesByPrognameAndInstname(programme, institute);
         var batchMap = new List<Response>();
         
