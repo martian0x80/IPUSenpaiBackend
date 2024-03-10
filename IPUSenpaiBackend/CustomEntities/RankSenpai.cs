@@ -14,7 +14,7 @@ public class RankSenpaiOverall
     public float Percentage { get; set; }
     public float CreditsPercentage { get; set; }
     public int Semesters { get; set; }
-    public List<Dictionary<string, string>> Sgpa { get; set; }
+    public List<Dictionary<string, string>> SgpaAllSem { get; set; }
     public List<Dictionary<string, int>> MarksPerSemester { get; set; }
 }
 

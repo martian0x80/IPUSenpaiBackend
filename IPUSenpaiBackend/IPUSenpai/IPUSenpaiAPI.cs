@@ -265,8 +265,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<List<PartialResponse>> GetSemestersByProgrammeAndInstname(string programme, string institute)
     {
-        var semesters = await _context.Results
-            .Include(r => r.EnrolnoNavigation)
+        var semesters = await _context.Results.AsNoTracking()
+            // .Include(r => r.EnrolnoNavigation)
             .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme &&
                         r.EnrolnoNavigation.InstcodeNavigation.Instname == institute)
             .GroupBy(r => r.Semester)
@@ -594,7 +594,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Enrollment = r.Enrolno,
                 Name = r.Name,
                 MarksPerSemester = new List<Dictionary<string, int>>(),
-                Sgpa = new List<Dictionary<string, string>>(),
+                SgpaAllSem = new List<Dictionary<string, string>>(),
                 Semesters = r.Semester.Count
             };
 
@@ -666,7 +666,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 totalcredits += semestercredits;
                 var sgpa = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits);
                 weightedsgpa += sgpa * semestercredits;
-                rank.Sgpa.Add(new Dictionary<string, string>
+                rank.SgpaAllSem.Add(new Dictionary<string, string>
                 {
                     ["semester"] = s.Semester.ToString(),
                     ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture)
