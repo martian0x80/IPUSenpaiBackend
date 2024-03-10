@@ -265,6 +265,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<List<PartialResponse>> GetSemestersByProgrammeAndInstname(string programme, string institute)
     {
+        _context.ChangeTracker.LazyLoadingEnabled = false;
         var semesters = await _context.Results.AsNoTracking()
             // .Include(r => r.EnrolnoNavigation)
             .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme &&
@@ -318,8 +319,6 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 g.Key.Maxmarks,
                 g.Key.Credits,
             }).ToListAsync();
-
-
 
         return subjects.Select(g => new Dictionary<string, string>
         {
@@ -535,7 +534,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 catch (KeyNotFoundException e)
                 {
                     // If key is not found retry
-                    Console.Out.WriteLine($"Key not found: {s.Subcode}\n {r.Enrolno} {r.Name}");
+                    Console.Out.WriteLine($"Key not found: {s.Subcode}\n {r.Enrolno} {r.Name}\n Schemeid: {s.Exam}");
 
                 }
             });
@@ -651,18 +650,6 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 SgpaAllSem = new List<Dictionary<string, string>>(),
                 Semesters = r.Semester.Count
             };
-
-            // Check if the subject is present in the subject list
-            // foreach (var s in r.Semester)
-            // {
-            //     foreach (var sub in s.Subs)
-            //     {
-            //         if (!subject.ContainsKey(sub.Subcode))
-            //         {
-            //             subject = GetSubjectsByEnrollment(r.Enrolno).Result;
-            //         }
-            //     }
-            // }
 
             int marks = 0;
             int total = 0;
