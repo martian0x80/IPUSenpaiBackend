@@ -613,6 +613,29 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     }).ToList()
             }).ToList();
 
+        if (groupedResult.Count == 0)
+        {
+            return (new List<RankSenpaiOverall>
+            {
+                new RankSenpaiOverall
+                {
+                    Enrollment = "No results found",
+                    Name = "No results found",
+                    Marks = 0,
+                    Total = 0,
+                    CreditMarks = 0,
+                    TotalCredits = 0,
+                    TotalCreditMarks = 0,
+                    Percentage = 0,
+                    CreditsPercentage = 0,
+                    TotalCreditMarksWeighted = 0,
+                    Cgpa = 0,
+                    SgpaAllSem = new List<Dictionary<string, string>>(),
+                    MarksPerSemester = new List<Dictionary<string, int>>()
+                }
+            }, 0);
+        }
+        
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
 
         List<RankSenpaiOverall> ranklist = new();
