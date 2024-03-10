@@ -373,7 +373,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return ExamType.Regular;
     }
 
-    public List<RankSenpaiSemester> GetRanklistBySemester(string instcode, string progcode, string batch, string sem,
+    public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string progcode, string batch, string sem,
         int pageNumber = 1, int pageSize = 10)
     {
         Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}");
@@ -456,7 +456,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         
         if (groupedResult.Count == 0)
         {
-            return new List<RankSenpaiSemester>
+            return (new List<RankSenpaiSemester>
             {
                 new RankSenpaiSemester
                 {
@@ -473,7 +473,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     Sgpa = 0,
                     Subject = new List<Dictionary<string, string>>()
                 }
-            };
+            }, 0);
         }
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
 
@@ -552,11 +552,19 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
             ranklist.Add(rank);
         });
+        
+        int count = ranklist.Count;
 
-        return ranklist.OrderByDescending(r => r.Sgpa).Skip(pageNumber * pageSize).Take(pageSize).ToList();;
+        ranklist =  ranklist.OrderByDescending(r => r.Sgpa).ThenBy(r => r.Marks)
+            .Skip(pageNumber * pageSize).Take(pageSize).ToList();
+        for (int i = 0; i < ranklist.Count; i++)
+        {
+            ranklist[i].Rank = i + 1;
+        }
+        return (ranklist, count);
     }
 
-    public List<RankSenpaiOverall> GetRanklistOverall(string instcode, string progcode, string batch,
+    public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string progcode, string batch,
         int pageNumber = 1, int pageSize = 10)
     {
         Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: Overall");
@@ -718,7 +726,16 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
             ranklist.Add(rank);
         });
-    return ranklist.OrderByDescending(r => r.Cgpa).Skip(pageNumber * pageSize).Take(pageSize).ToList();;
+        
+        int count = ranklist.Count;
+        
+        ranklist =  ranklist.OrderByDescending(r => r.Cgpa).ThenBy(r => r.Marks)
+            .Skip(pageNumber * pageSize).Take(pageSize).ToList();
+        for (int i = 0; i < ranklist.Count; i++)
+        {
+            ranklist[i].Rank = i + 1;
+        }
+        return (ranklist, count);
     }
     
 }

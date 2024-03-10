@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using IPUSenpaiBackend.IPUSenpai;
 using IPUSenpaiBackend.CustomEntities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 // using Microsoft.AspNetCore.RateLimiting;
 
@@ -130,14 +130,23 @@ public class IPUSenpaiController : ControllerBase
     [Route("rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}")]
     public List<RankSenpaiSemester> GetRankSem(string instcode, string progcode, string batch, string sem, int pageNumber, int pageSize)
     {
-        return _api.GetRanklistBySemester(instcode, progcode, batch, sem, pageNumber, pageSize);
+        var resp =  _api.GetRanklistBySemester(instcode, progcode, batch, sem, pageNumber, pageSize);
+        var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
+        IHeaderDictionary headers = Response.Headers;
+        headers.Append("X-Total-Page-Count", pageCount.ToString());
+        return resp.Item1;
     }
     
     [HttpGet]
     [Route("rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}")]
     public List<RankSenpaiOverall> GetRank(string instcode, string progcode, string batch, int pageNumber, int pageSize)
     {
-        return _api.GetRanklistOverall(instcode, progcode, batch, pageNumber, pageSize);
+        var resp =  _api.GetRanklistOverall(instcode, progcode, batch, pageNumber, pageSize);
+        var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
+        IHeaderDictionary headers = Response.Headers;
+        headers.Append("X-Total-Page-Count", pageCount.ToString());
+        // Response.Headers.Add("X-Total-Page-Count", resp.Item2.ToString());
+        return resp.Item1;
     }
     
     [HttpGet]
