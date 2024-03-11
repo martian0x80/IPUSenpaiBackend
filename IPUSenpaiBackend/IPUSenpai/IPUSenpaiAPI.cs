@@ -544,8 +544,22 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             rank.CreditMarks = creditmarks;
             rank.TotalCredits = totalcredits;
             rank.TotalCreditMarks = totalcreditmarks;
-            rank.Percentage = (float)marks / total * 100;
-            rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
+            if (total != 0)
+            {
+                rank.Percentage = (float)marks / total * 100;
+            }
+            else
+            {
+                rank.Percentage = 0;
+            }
+            if (totalcreditmarks != 0)
+            {
+                rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
+            }
+            else
+            {
+                rank.CreditsPercentage = 0;
+            }
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Sgpa = MathSenpai.GetSgpa(totalcreditmarksweighted, totalcredits);
 
@@ -729,8 +743,21 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             rank.CreditMarks = creditmarks;
             rank.TotalCredits = totalcredits;
             rank.TotalCreditMarks = totalcreditmarks;
-            rank.Percentage = (float)marks / total * 100;
-            rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
+            if (total != 0)
+            {
+                rank.Percentage = (float)marks / total * 100;
+            }
+            else
+            {
+                rank.Percentage = 0;
+            }
+            if (totalcreditmarks != 0)
+            {
+                rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
+            } else
+            {
+                rank.CreditsPercentage = 0;
+            }
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
 

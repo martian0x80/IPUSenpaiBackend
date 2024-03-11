@@ -16,6 +16,10 @@ public class IPUSenpaiController : ControllerBase
     private readonly IIPUSenpaiAPI _api;
     private readonly ILogger _logger;
     private readonly IDistributedCache _cache;
+    public JsonSerializerOptions SerializerOptions { get; set; } = new JsonSerializerOptions
+    {
+        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals
+    };
     
     public IPUSenpaiController(IIPUSenpaiAPI api, ILogger<IPUSenpaiController> logger, IDistributedCache cache)
     {
@@ -241,7 +245,7 @@ public class IPUSenpaiController : ControllerBase
         if (!string.IsNullOrEmpty(cachedRank))
         {
             try {
-                var rank = JsonSerializer.Deserialize<Dictionary<string, object>>(cachedRank);
+                var rank = JsonSerializer.Deserialize<Dictionary<string, object>>(cachedRank, SerializerOptions);
                 var rankList = rank["rank"] as List<RankSenpaiSemester>;
                 headers.Append("X-Total-Page-Count", rank["count"].ToString());
                 _logger.LogInformation("\n[I] Returning cached ranklist by semester");
@@ -260,7 +264,7 @@ public class IPUSenpaiController : ControllerBase
             {
                 {"rank", resp.Item1},
                 {"count", pageCount.ToString()}
-            }));
+            }, SerializerOptions));
         _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
         if (headers.ContainsKey("X-Total-Page-Count"))
         {
@@ -279,7 +283,7 @@ public class IPUSenpaiController : ControllerBase
         if (!string.IsNullOrEmpty(cachedRank))
         {
             try {
-                var rank = JsonSerializer.Deserialize<Dictionary<string, object>>(cachedRank);
+                var rank = JsonSerializer.Deserialize<Dictionary<string, object>>(cachedRank, SerializerOptions);
                 var rankList = rank["rank"] as List<RankSenpaiOverall>;
                 headers.Append("X-Total-Page-Count", rank["count"].ToString());
                 _logger.LogInformation("\n[I] Returning cached ranklist overall");
@@ -298,7 +302,7 @@ public class IPUSenpaiController : ControllerBase
             {
                 {"rank", resp.Item1},
                 {"count", pageCount.ToString()}
-            }));
+            }, SerializerOptions));
         _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
         if (headers.ContainsKey("X-Total-Page-Count"))
         {
