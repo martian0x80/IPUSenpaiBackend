@@ -245,9 +245,9 @@ public class IPUSenpaiController : ControllerBase
         if (!string.IsNullOrEmpty(cachedRank))
         {
             try {
-                var rank = JsonSerializer.Deserialize<Dictionary<string, object>>(cachedRank, SerializerOptions);
-                var rankList = rank["rank"] as List<RankSenpaiSemester>;
-                headers.Append("X-Total-Page-Count", rank["count"].ToString());
+                var rank = JsonSerializer.Deserialize<Tuple<List<RankSenpaiSemester>, int>>(cachedRank);
+                var rankList = rank.Item1;
+                headers.Append("X-Total-Page-Count", rank.Item2.ToString());
                 _logger.LogInformation("\n[I] Returning cached ranklist by semester");
                 return rankList;
             }
@@ -256,15 +256,11 @@ public class IPUSenpaiController : ControllerBase
                 _logger.LogError(e, "Error deserializing cached ranklist by semester");
             }
         }
-        var resp =  _api.GetRanklistBySemester(instcode, progcode, batch, sem, pageNumber, pageSize);
+        var resp = _api.GetRanklistBySemester(instcode, progcode, batch, sem, pageNumber, pageSize);
         var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
         _cache.SetString(
             $"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}",
-            JsonSerializer.Serialize(new Dictionary<string, object>
-            {
-                {"rank", resp.Item1},
-                {"count", pageCount.ToString()}
-            }, SerializerOptions));
+            JsonSerializer.Serialize(new Tuple<List<RankSenpaiSemester>, int>(resp.Item1, pageCount), SerializerOptions));
         _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
         if (headers.ContainsKey("X-Total-Page-Count"))
         {
@@ -283,9 +279,9 @@ public class IPUSenpaiController : ControllerBase
         if (!string.IsNullOrEmpty(cachedRank))
         {
             try {
-                var rank = JsonSerializer.Deserialize<Dictionary<string, object>>(cachedRank, SerializerOptions);
-                var rankList = rank["rank"] as List<RankSenpaiOverall>;
-                headers.Append("X-Total-Page-Count", rank["count"].ToString());
+                var rank = JsonSerializer.Deserialize<Tuple<List<RankSenpaiOverall>, int>>(cachedRank);
+                var rankList = rank.Item1;
+                headers.Append("X-Total-Page-Count", rank.Item2.ToString());
                 _logger.LogInformation("\n[I] Returning cached ranklist overall");
                 return rankList;
             }
@@ -298,11 +294,7 @@ public class IPUSenpaiController : ControllerBase
         var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
         _cache.SetString(
             $"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}",
-            JsonSerializer.Serialize(new Dictionary<string, object>
-            {
-                {"rank", resp.Item1},
-                {"count", pageCount.ToString()}
-            }, SerializerOptions));
+            JsonSerializer.Serialize(new Tuple<List<RankSenpaiOverall>, int>(resp.Item1, pageCount), SerializerOptions));
         _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
         if (headers.ContainsKey("X-Total-Page-Count"))
         {
