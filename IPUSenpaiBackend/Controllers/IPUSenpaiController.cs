@@ -1,8 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using IPUSenpaiBackend.IPUSenpai;
 using IPUSenpaiBackend.CustomEntities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 
 // using Microsoft.AspNetCore.RateLimiting;
 
@@ -14,11 +15,13 @@ public class IPUSenpaiController : ControllerBase
 {
     private readonly IIPUSenpaiAPI _api;
     private readonly ILogger _logger;
+    private readonly IDistributedCache _cache;
     
-    public IPUSenpaiController(IIPUSenpaiAPI api, ILogger<IPUSenpaiController> logger)
+    public IPUSenpaiController(IIPUSenpaiAPI api, ILogger<IPUSenpaiController> logger, IDistributedCache cache)
     {
         _api = api;
         _logger = logger;
+        _cache = cache;
     }
     
     [HttpGet]
@@ -44,41 +47,117 @@ public class IPUSenpaiController : ControllerBase
     [Route("programmes/{limit?}")]
     public async Task<List<PartialResponse>> GetProgrammes(short limit = 79)
     {
-        return await _api.GetProgrammes(limit);
+        var cachedProgrammes = await _cache.GetStringAsync("GetProgrammes");
+        if (!string.IsNullOrEmpty(cachedProgrammes))
+        {
+            try {
+                return JsonSerializer.Deserialize<List<PartialResponse>>(cachedProgrammes);
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached programmes");
+            }
+        }
+        var programmes = await _api.GetProgrammes(limit);
+        await _cache.SetStringAsync("GetProgrammes", JsonSerializer.Serialize(programmes));
+        return programmes;
     }
     
     [HttpGet]
     [Route("institutes/{limit?}")]
     public async Task<List<Response>> GetInstitutes(short limit = 50)
     {
-        return await _api.GetInstitutes(limit);
+        var cachedInstitutes = await _cache.GetStringAsync("GetInstitutes");
+        if (!string.IsNullOrEmpty(cachedInstitutes))
+        {
+            try {
+                return JsonSerializer.Deserialize<List<Response>>(cachedInstitutes);
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached institutes");
+            }
+        }
+        var institutes = await _api.GetInstitutes(limit);
+        await _cache.SetStringAsync("GetInstitutes", JsonSerializer.Serialize(institutes));
+        return institutes;
     }
     
     [HttpGet]
     [Route("institutes/programme={programme}/{limit?}")]
     public async Task<List<PartialResponse>> GetInstitutes(string programme, short limit = 100)
     {
-        return await _api.GetInstitutesByProgramme(programme, limit);
+        var cachedInstitutes = await _cache.GetStringAsync($"GetInstitutesByProgramme_{programme}_limit={limit}");
+        if (!string.IsNullOrEmpty(cachedInstitutes))
+        {
+            try {
+                return JsonSerializer.Deserialize<List<PartialResponse>>(cachedInstitutes);
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached institutes by programme");
+            }
+        }
+        var institutes = await _api.GetInstitutesByProgramme(programme, limit);
+        await _cache.SetStringAsync($"GetInstitutesByProgramme_{programme}_limit={limit}", JsonSerializer.Serialize(institutes));
+        return institutes;
     }
     
     [HttpGet]
     [Route("specializations/programme={programme}&institute={instname}/{limit?}")]
     public async Task<List<Response>> GetSpecializations(string programme, string instname, short limit = 100)
     {
-        return await _api.GetSpecializationsByProgrammeAndInstname(limit, programme, instname);
+        var cachedSpecializations = await _cache.GetStringAsync($"GetSpecializationsByProgrammeAndInstname_{programme}_{instname}_limit={limit}");
+        if (!string.IsNullOrEmpty(cachedSpecializations))
+        {
+            try {
+                return JsonSerializer.Deserialize<List<Response>>(cachedSpecializations);
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached specializations by programme and institute");
+            }
+        }
+        var specializations = await _api.GetSpecializationsByProgrammeAndInstname(limit, programme, instname);
+        await _cache.SetStringAsync($"GetSpecializationsByProgrammeAndInstname_{programme}_{instname}_limit={limit}", JsonSerializer.Serialize(specializations));
+        return specializations;
     }
     
     [HttpGet]
     [Route("institute/shifts/{instname}")]
     public Task<List<Response>> GetInstituteShifts(string instname)
     {
-        return _api.GetInstituteCodesForShifts(instname);
+        var cachedShifts = _cache.GetString($"GetInstituteShifts_{instname}");
+        if (!string.IsNullOrEmpty(cachedShifts))
+        {
+            try {
+                return Task.FromResult(JsonSerializer.Deserialize<List<Response>>(cachedShifts));
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached institute shifts");
+            }
+        }
+        var shifts = _api.GetInstituteCodesForShifts(instname);
+        _cache.SetString($"GetInstituteShifts_{instname}", JsonSerializer.Serialize(shifts));
+        return shifts;
     }
     
     [HttpGet]
     [Route("batches/programme={programme}&institute={institute}")]
     public async Task<List<Response>> GetBatches(string programme, string institute)
     {
+        var cachedBatches = await _cache.GetStringAsync($"GetBatchesByPrognameAndInstname_{programme}_{institute}");
+        if (!string.IsNullOrEmpty(cachedBatches))
+        {
+            try {
+                return JsonSerializer.Deserialize<List<Response>>(cachedBatches);
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached batches by programme and institute");
+            }
+        }
 
         Dictionary<string, int> courseDurations = new Dictionary<string, int>()
         {
@@ -127,7 +206,8 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
-
+        var serializedBatches = JsonSerializer.Serialize(batchMap);
+        await _cache.SetStringAsync($"GetBatchesByPrognameAndInstname_{programme}_{institute}", serializedBatches);
         return batchMap;
     }
     
@@ -136,16 +216,56 @@ public class IPUSenpaiController : ControllerBase
     [SuppressMessage("ReSharper.DPA", "DPA0000: DPA issues")]
     public async Task<List<PartialResponse>> GetSemesters(string programme, string institute)
     {
-        return await _api.GetSemestersByProgrammeAndInstname(programme, institute);
+        var cachedSemesters = await _cache.GetStringAsync($"GetSemestersByProgrammeAndInstname_{programme}_{institute}");
+        if (!string.IsNullOrEmpty(cachedSemesters))
+        {
+            try {
+                return JsonSerializer.Deserialize<List<PartialResponse>>(cachedSemesters);
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached semesters by programme and institute");
+            }
+        }
+        var semesters = await _api.GetSemestersByProgrammeAndInstname(programme, institute);
+        await _cache.SetStringAsync($"GetSemestersByProgrammeAndInstname_{programme}_{institute}", JsonSerializer.Serialize(semesters));
+        return semesters;
     }
     
     [HttpGet]
     [Route("rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}")]
     public List<RankSenpaiSemester> GetRankSem(string instcode, string progcode, string batch, string sem, int pageNumber, int pageSize)
     {
+        var cachedRank = _cache.GetString($"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}");
+        IHeaderDictionary headers = Response.Headers;
+        if (!string.IsNullOrEmpty(cachedRank))
+        {
+            try {
+                var rank = JsonSerializer.Deserialize<Dictionary<string, object>>(cachedRank);
+                var rankList = rank["rank"] as List<RankSenpaiSemester>;
+                headers.Append("X-Total-Page-Count", rank["count"].ToString());
+                _logger.LogInformation("\n[I] Returning cached ranklist by semester");
+                return rankList;
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached ranklist by semester");
+            }
+        }
         var resp =  _api.GetRanklistBySemester(instcode, progcode, batch, sem, pageNumber, pageSize);
         var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
-        IHeaderDictionary headers = Response.Headers;
+        _cache.SetString(
+            $"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}",
+            JsonSerializer.Serialize(new Dictionary<string, object>
+            {
+                {"rank", resp.Item1},
+                {"count", pageCount.ToString()}
+            }));
+        _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
+        if (headers.ContainsKey("X-Total-Page-Count"))
+        {
+            headers.Remove("X-Total-Page-Count");
+        }
         headers.Append("X-Total-Page-Count", pageCount.ToString());
         return resp.Item1;
     }
@@ -154,11 +274,37 @@ public class IPUSenpaiController : ControllerBase
     [Route("rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}")]
     public List<RankSenpaiOverall> GetRank(string instcode, string progcode, string batch, int pageNumber, int pageSize)
     {
+        var cachedRank = _cache.GetString($"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}");
+        IHeaderDictionary headers = Response.Headers;
+        if (!string.IsNullOrEmpty(cachedRank))
+        {
+            try {
+                var rank = JsonSerializer.Deserialize<Dictionary<string, object>>(cachedRank);
+                var rankList = rank["rank"] as List<RankSenpaiOverall>;
+                headers.Append("X-Total-Page-Count", rank["count"].ToString());
+                _logger.LogInformation("\n[I] Returning cached ranklist overall");
+                return rankList;
+            }
+            catch (JsonException e)
+            {
+                _logger.LogError(e, "Error deserializing cached ranklist overall");
+            }
+        }
         var resp =  _api.GetRanklistOverall(instcode, progcode, batch, pageNumber, pageSize);
         var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
-        IHeaderDictionary headers = Response.Headers;
+        _cache.SetString(
+            $"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}",
+            JsonSerializer.Serialize(new Dictionary<string, object>
+            {
+                {"rank", resp.Item1},
+                {"count", pageCount.ToString()}
+            }));
+        _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
+        if (headers.ContainsKey("X-Total-Page-Count"))
+        {
+            headers.Remove("X-Total-Page-Count");
+        }
         headers.Append("X-Total-Page-Count", pageCount.ToString());
-        // Response.Headers.Add("X-Total-Page-Count", resp.Item2.ToString());
         return resp.Item1;
     }
     

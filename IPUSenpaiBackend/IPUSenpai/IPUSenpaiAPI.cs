@@ -277,7 +277,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             })
             .OrderBy(r => r.Name)
             .ToListAsync();
-
+        
         return semesters;
     }
 

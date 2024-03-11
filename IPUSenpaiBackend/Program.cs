@@ -26,39 +26,47 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddDbContext<IPUSenpaiDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("CONNSTR")), ServiceLifetime.Scoped);
 
-builder.Services.AddRateLimiter(s =>
+builder.Services.AddResponseCompression();
+
+builder.Services.AddStackExchangeRedisCache(options =>
 {
-    s.AddTokenBucketLimiter(policyName: "tokenbucket", options =>
-    {
-        options.TokenLimit = 2;
-        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        options.QueueLimit = 2;
-        options.ReplenishmentPeriod = TimeSpan.FromSeconds(10);
-        options.TokensPerPeriod = 2;
-        options.AutoReplenishment = true;
-    });
-    s.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, IPAddress>(context =>
-    {
-        IPAddress? remoteIpAddress = context.Connection.RemoteIpAddress;
-
-        if (!IPAddress.IsLoopback(remoteIpAddress!))
-        {
-            return RateLimitPartition.GetTokenBucketLimiter
-            (remoteIpAddress!, _ =>
-                new TokenBucketRateLimiterOptions
-                {
-                    TokenLimit = 30,
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 15,
-                    ReplenishmentPeriod = TimeSpan.FromSeconds(30),
-                    TokensPerPeriod = 30,
-                    AutoReplenishment = true
-                });
-        }
-
-        return RateLimitPartition.GetNoLimiter(IPAddress.Loopback);
-    });
+    options.Configuration = builder.Configuration.GetConnectionString("CONNSTR2");
+    options.InstanceName = "";
 });
+
+// builder.Services.AddRateLimiter(s =>
+// {
+//     s.AddTokenBucketLimiter(policyName: "tokenbucket", options =>
+//     {
+//         options.TokenLimit = 2;
+//         options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+//         options.QueueLimit = 2;
+//         options.ReplenishmentPeriod = TimeSpan.FromSeconds(10);
+//         options.TokensPerPeriod = 2;
+//         options.AutoReplenishment = true;
+//     });
+//     s.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, IPAddress>(context =>
+//     {
+//         IPAddress? remoteIpAddress = context.Connection.RemoteIpAddress;
+//
+//         if (!IPAddress.IsLoopback(remoteIpAddress!))
+//         {
+//             return RateLimitPartition.GetTokenBucketLimiter
+//             (remoteIpAddress!, _ =>
+//                 new TokenBucketRateLimiterOptions
+//                 {
+//                     TokenLimit = 30,
+//                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+//                     QueueLimit = 15,
+//                     ReplenishmentPeriod = TimeSpan.FromSeconds(30),
+//                     TokensPerPeriod = 30,
+//                     AutoReplenishment = true
+//                 });
+//         }
+//
+//         return RateLimitPartition.GetNoLimiter(IPAddress.Loopback);
+//     });
+// });
 
 builder.Services.AddCors(options =>
 {
@@ -72,7 +80,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseRateLimiter();
+// app.UseRateLimiter();
+
+app.UseCors("AllowSpecificOrigins");
+app.UseResponseCompression();
 
 if (app.Environment.IsDevelopment())
 {
@@ -84,8 +95,6 @@ else
     app.UseExceptionHandler("/error");
     app.UseHsts();
 }
-
-app.UseCors("AllowSpecificOrigins");
 
 app.UseHttpsRedirection();
 
