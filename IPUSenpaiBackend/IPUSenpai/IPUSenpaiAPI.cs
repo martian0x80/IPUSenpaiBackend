@@ -308,7 +308,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             where r.Enrolno == enrollment
             join s in _context.Subjects on r.Subcode equals s.Subcode
             join st in _context.Students on r.Enrolno equals st.Enrolno
-            where r.Schemeid == s.Schemeid || s.Paperid.Contains(st.Progcode)
+            // where s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid
+            where (s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid) || (!s.Paperid.Contains(st.Progcode) && r.Schemeid != s.Schemeid)
             group new { r, s, st } by new { s.Subcode, s.Paperid, s.Papername, s.Passmarks, s.Maxmarks, s.Credits }
             into g
             select new
@@ -479,6 +480,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         List<RankSenpaiSemester> ranklist = new();
         object subjectLock = new();
+        short errorCount = 0;
         Parallel.ForEach(groupedResult, r =>
         {
             RankSenpaiSemester rank = new()
@@ -500,9 +502,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 {
                     lock (subjectLock)
                     {
-                        if (!subject.ContainsKey(s.Subcode))
+                        if (!subject.ContainsKey(s.Subcode) && errorCount < 30)
                         {
-                            subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                            subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno).Result).ToLookup(k => k.Key, v => v.Value)
+                                .ToDictionary(k => k.Key, v => v.First());
+                            // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                            errorCount++;
                         }
                     }
                 }
@@ -571,6 +576,24 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         ranklist =  ranklist.OrderByDescending(r => r.Sgpa).ThenBy(r => r.Marks)
             .Skip(pageNumber * pageSize).Take(pageSize).ToList();
+        if (errorCount >= 30)
+        {
+            ranklist.Insert(0, new RankSenpaiSemester
+            {
+                Enrollment = "6969696969",
+                Name = "There might be issues with the data, missing subjects (~30) for some students",
+                Marks = 69,
+                Total = 69,
+                CreditMarks = 69,
+                TotalCredits = 69,
+                TotalCreditMarks = 69,
+                Percentage = 69,
+                CreditsPercentage = 69,
+                TotalCreditMarksWeighted = 69,
+                Sgpa = 6.9f,
+                Subject = new List<Dictionary<string, string>>()
+            });
+        }
         for (int i = 0; i < ranklist.Count; i++)
         {
             ranklist[i].Rank = i + 1;
@@ -689,9 +712,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     {
                         lock (subjectLock)
                         {
-                            if (!subject.ContainsKey(sub.Subcode) && errorCount < 5)
+                            if (!subject.ContainsKey(sub.Subcode) && errorCount < 30)
                             {
-                                subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                                subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno).Result).ToLookup(k => k.Key, v => v.Value)
+                                    .ToDictionary(k => k.Key, v => v.First());
+                                // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
                                 errorCount++;
                             }
                             else if (errorCount >= 5)
@@ -776,12 +801,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         
         ranklist =  ranklist.OrderByDescending(r => r.Cgpa).ThenBy(r => r.Marks)
             .Skip(pageNumber * pageSize).Take(pageSize).ToList();
-        if (count > 1)
+        if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiOverall
             {
                 Enrollment = "6969696969",
-                Name = "There might be issues with the data, encountered missing subjects",
+                Name = "There might be issues with the data, missing subjects (~30) for some students",
                 Marks = 69,
                 Total = 69,
                 CreditMarks = 69,
