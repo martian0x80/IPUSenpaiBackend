@@ -4,6 +4,7 @@ using IPUSenpaiBackend.IPUSenpai;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,8 +74,10 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(
         policy  =>
         {
-            policy.WithOrigins("https://ipu-senpai.vercel.app",
-                "http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+            policy.AllowAnyOrigin();
+            policy.AllowAnyHeader();
+            policy.AllowAnyMethod();
+            policy.WithExposedHeaders(HeaderNames.ContentLength, "X-Total-Page-Count");
         });
 });
 
