@@ -40,6 +40,8 @@ public partial class IPUSenpaiDBContext : DbContext
 
             entity.ToTable("institute");
 
+            entity.HasIndex(e => e.Instname, "instname_indx");
+
             entity.Property(e => e.Instcode)
                 .ValueGeneratedNever()
                 .HasColumnName("instcode");
@@ -51,6 +53,10 @@ public partial class IPUSenpaiDBContext : DbContext
             entity.HasKey(e => e.Progcode).HasName("programme_pkey");
 
             entity.ToTable("programme");
+
+            entity.HasIndex(e => e.Prog, "prog_indx");
+
+            entity.HasIndex(e => e.Spec, "spec_indx");
 
             entity.Property(e => e.Progcode)
                 .HasMaxLength(8)
@@ -65,6 +71,8 @@ public partial class IPUSenpaiDBContext : DbContext
             entity
                 .HasNoKey()
                 .ToTable("programmes_institutes");
+
+            entity.HasIndex(e => new { e.Instcode, e.Progcode }, "programmes_institutes_instcode_progcode_key").IsUnique();
 
             entity.Property(e => e.Instcode).HasColumnName("instcode");
             entity.Property(e => e.Progcode)
@@ -85,6 +93,12 @@ public partial class IPUSenpaiDBContext : DbContext
             entity.HasKey(e => new { e.ResultId, e.Enrolno, e.Subcode, e.Schemeid, e.Exam }).HasName("results_pkey");
 
             entity.ToTable("results");
+
+            entity.HasIndex(e => e.Enrolno, "enrolno_indx");
+
+            entity.HasIndex(e => e.Semester, "semester_indx");
+
+            entity.HasIndex(e => e.Subcode, "subcode_indx");
 
             entity.Property(e => e.ResultId)
                 .ValueGeneratedOnAdd()
@@ -118,6 +132,12 @@ public partial class IPUSenpaiDBContext : DbContext
 
             entity.ToTable("student");
 
+            entity.HasIndex(e => e.Instcode, "instcode_indx");
+
+            entity.HasIndex(e => e.Name, "name_indx");
+
+            entity.HasIndex(e => e.Progcode, "progcode_indx");
+
             entity.Property(e => e.Enrolno)
                 .HasMaxLength(12)
                 .HasColumnName("enrolno");
@@ -146,6 +166,8 @@ public partial class IPUSenpaiDBContext : DbContext
             entity.HasKey(e => e.Subid).HasName("subjects_pkey");
 
             entity.ToTable("subjects");
+
+            entity.HasIndex(e => new { e.Subcode, e.Paperid, e.Papername, e.Credits, e.Minor, e.Major, e.Mode, e.Kind, e.Maxmarks, e.Passmarks, e.Schemeid, e.Type, e.Exam }, "unique_subjects_constraint").IsUnique();
 
             entity.Property(e => e.Subid).HasColumnName("subid");
             entity.Property(e => e.Credits).HasColumnName("credits");

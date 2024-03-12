@@ -70,11 +70,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: "AllowSpecificOrigins",
+    options.AddDefaultPolicy(
         policy  =>
         {
             policy.WithOrigins("https://ipu-senpai.vercel.app",
-                "http://localhost:3000");
+                "http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
         });
 });
 
@@ -82,7 +82,7 @@ var app = builder.Build();
 
 // app.UseRateLimiter();
 
-app.UseCors("AllowSpecificOrigins");
+app.UseCors();
 app.UseResponseCompression();
 
 if (app.Environment.IsDevelopment())
