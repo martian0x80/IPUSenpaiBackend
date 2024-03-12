@@ -263,13 +263,14 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return programme;
     }
 
-    public async Task<List<PartialResponse>> GetSemestersByProgrammeAndInstname(string programme, string institute)
+    public async Task<List<PartialResponse>> GetSemestersByProgrammeInstnameBatch(string programme, string institute, string batch)
     {
         _context.ChangeTracker.LazyLoadingEnabled = false;
         var semesters = await _context.Results.AsNoTracking()
             // .Include(r => r.EnrolnoNavigation)
             .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme &&
-                        r.EnrolnoNavigation.InstcodeNavigation.Instname == institute)
+                        r.EnrolnoNavigation.InstcodeNavigation.Instname == institute &&
+                        r.Batch.ToString() == batch)
             .GroupBy(r => r.Semester)
             .Select(r => new PartialResponse
             {
@@ -653,6 +654,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         List<RankSenpaiOverall> ranklist = new();
         object subjectLock = new();
+        short errorCount = 0;
 
         Parallel.ForEach(groupedResult, r =>
         {
@@ -683,14 +685,20 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 int semestercreditmarksmax = 0;
                 Parallel.ForEach(s.Subs, sub =>
                 {
-
                     if (!subject.ContainsKey(sub.Subcode))
                     {
                         lock (subjectLock)
                         {
-                            if (!subject.ContainsKey(sub.Subcode))
+                            if (!subject.ContainsKey(sub.Subcode) && errorCount < 5)
                             {
                                 subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                                errorCount++;
+                            }
+                            else if (errorCount >= 5)
+                            {
+                                Console.Out.WriteLine($"Key not found: {sub.Subcode}\n {r.Enrolno} {r.Name}");
+                                // Exit the loop
+                                return;
                             }
                         }
                     }
@@ -768,6 +776,26 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         
         ranklist =  ranklist.OrderByDescending(r => r.Cgpa).ThenBy(r => r.Marks)
             .Skip(pageNumber * pageSize).Take(pageSize).ToList();
+        if (count > 1)
+        {
+            ranklist.Insert(0, new RankSenpaiOverall
+            {
+                Enrollment = "6969696969",
+                Name = "There might be issues with the data, encountered missing subjects",
+                Marks = 69,
+                Total = 69,
+                CreditMarks = 69,
+                TotalCredits = 69,
+                TotalCreditMarks = 69,
+                Percentage = 69,
+                CreditsPercentage = 69,
+                TotalCreditMarksWeighted = 69,
+                Cgpa = 6.9f,
+                SgpaAllSem = new List<Dictionary<string, string>>(),
+                MarksPerSemester = new List<Dictionary<string, int>>()
+            });
+        }
+
         for (int i = 0; i < ranklist.Count; i++)
         {
             ranklist[i].Rank = i + 1;

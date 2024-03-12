@@ -11,7 +11,7 @@ public interface IIPUSenpaiAPI
     public Task<List<Response>> GetInstituteCodesForShifts(string instname);
     // The controller handles the Response wrapping for the next one
     public Task<List<short?>> GetBatchesByPrognameAndInstname(string programme, string institute);
-    public Task<List<PartialResponse>> GetSemestersByProgrammeAndInstname(string programme, string institute);
+    public Task<List<PartialResponse>> GetSemestersByProgrammeInstnameBatch(string programme, string institute, string batch);
     public Task<InstituteSenpai> GetInstituteByInstcode(short? instcode);
     public Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode);
 

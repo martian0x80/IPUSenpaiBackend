@@ -216,11 +216,10 @@ public class IPUSenpaiController : ControllerBase
     }
     
     [HttpGet]
-    [Route("semesters/programme={programme}&institute={institute}")]
-    [SuppressMessage("ReSharper.DPA", "DPA0000: DPA issues")]
-    public async Task<List<PartialResponse>> GetSemesters(string programme, string institute)
+    [Route("semesters/programme={programme}&institute={institute}&batch={batch}")]
+    public async Task<List<PartialResponse>> GetSemesters(string programme, string institute, string batch)
     {
-        var cachedSemesters = await _cache.GetStringAsync($"GetSemestersByProgrammeAndInstname_{programme}_{institute}");
+        var cachedSemesters = await _cache.GetStringAsync($"GetSemestersByProgrammeAndInstname_{programme}_{institute}_{batch}");
         if (!string.IsNullOrEmpty(cachedSemesters))
         {
             try {
@@ -231,8 +230,8 @@ public class IPUSenpaiController : ControllerBase
                 _logger.LogError(e, "Error deserializing cached semesters by programme and institute");
             }
         }
-        var semesters = await _api.GetSemestersByProgrammeAndInstname(programme, institute);
-        await _cache.SetStringAsync($"GetSemestersByProgrammeAndInstname_{programme}_{institute}", JsonSerializer.Serialize(semesters));
+        var semesters = await _api.GetSemestersByProgrammeInstnameBatch(programme, institute, batch);
+        await _cache.SetStringAsync($"GetSemestersByProgrammeAndInstname_{programme}_{institute}_{batch}", JsonSerializer.Serialize(semesters));
         return semesters;
     }
     
