@@ -310,7 +310,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             join s in _context.Subjects on r.Subcode equals s.Subcode
             join st in _context.Students on r.Enrolno equals st.Enrolno
             // where s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid
-            where (s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid) || (!s.Paperid.Contains(st.Progcode) && r.Schemeid != s.Schemeid)
+            where (s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid)// || (!s.Paperid.Contains(st.Progcode) && r.Schemeid != s.Schemeid)
             group new { r, s, st } by new { s.Subcode, s.Paperid, s.Papername, s.Passmarks, s.Maxmarks, s.Credits }
             into g
             select new
@@ -945,6 +945,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         {
             Enrollment = enrolno,
             Name = student.Name,
+            Institute = student.Institute,
+            InstCode = student.Instcode.ToString(),
+            Programme = student.Programme,
+            ProgCode = student.Progcode,
+            Batch = student.Batch.ToString(),
+            Sid = student.Sid,
             Marks = 0,
             CreditMarks = 0,
             TotalCreditMarks = 0,

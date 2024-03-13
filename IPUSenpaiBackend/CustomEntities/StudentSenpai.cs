@@ -6,6 +6,12 @@ public class StudentSenpai
 {
     public string? Enrollment { get; set; }
     public string? Name { get; set; }
+    public string? Programme { get; set; }
+    public string? Institute { get; set; }
+    public string? Batch { get; set; }
+    public string? Sid { get; set; }
+    public string? InstCode { get; set; }
+    public string? ProgCode { get; set; }
     public int Marks { get; set; }
     public int CreditMarks { get; set; }
     public int TotalCreditMarks { get; set; }
