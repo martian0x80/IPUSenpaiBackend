@@ -600,11 +600,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Subject = new List<Dictionary<string, string>>()
             });
         }
-        int i = 0;
-        int rank = 0;
+        int i = 1;
+        int rank = 1;
+        ranklist[0].Rank = rank;
         while (i < ranklist.Count)
         {
-            if (float.Abs(ranklist[i-1].Sgpa - ranklist[i].Sgpa) < float.Epsilon)
+            if (float.Abs(ranklist[i-1].Sgpa - ranklist[i].Sgpa) < 0.0001f)
             {
                 ranklist[i].Rank = rank;
             }
@@ -837,11 +838,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             });
         }
 
-        int i = 0;
-        int rank = 0;
+        int i = 1;
+        int rank = 1;
+        ranklist[0].Rank = rank;
         while (i < ranklist.Count)
         {
-            if (float.Abs(ranklist[i-1].Cgpa - ranklist[i].Cgpa) < float.Epsilon)
+            if (float.Abs(ranklist[i-1].Cgpa - ranklist[i].Cgpa) < 0.0001f)
             {
                 ranklist[i].Rank = rank;
             }
