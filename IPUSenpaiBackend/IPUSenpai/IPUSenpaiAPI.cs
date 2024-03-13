@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using IPUSenpaiBackend.CustomEntities;
 using IPUSenpaiBackend.DBContext;
@@ -38,31 +39,31 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         _context = context;
     }
 
-    public async Task<StudentSenpai> GetStudentByEnrollment(string? enrollment)
-    {
-        StudentSenpai student = await _context.Students
-            .Include(s => s.InstcodeNavigation)
-            .Include(s => s.ProgcodeNavigation)
-            .Where(s => s.Enrolno == enrollment)
-            .Select(s => new StudentSenpai
-            {
-                Enrolno = s.Enrolno,
-                Name = s.Name,
-                Instcode = s.Instcode,
-                Institute = s.InstcodeNavigation.Instname,
-                Progcode = s.Progcode,
-                Programme = s.ProgcodeNavigation.Progname,
-                Batch = s.Batch,
-                Sid = s.Sid,
-            }).FirstOrDefaultAsync();
-
-        if (student == null)
-        {
-            student = new StudentSenpai();
-        }
-
-        return student;
-    }
+    // public async Task<StudentSenpai> GetStudentByEnrollment(string? enrollment)
+    // {
+    //     StudentSenpai student = await _context.Students
+    //         .Include(s => s.InstcodeNavigation)
+    //         .Include(s => s.ProgcodeNavigation)
+    //         .Where(s => s.Enrolno == enrollment)
+    //         .Select(s => new StudentSenpai
+    //         {
+    //             Enrolno = s.Enrolno,
+    //             Name = s.Name,
+    //             Instcode = s.Instcode,
+    //             Institute = s.InstcodeNavigation.Instname,
+    //             Progcode = s.Progcode,
+    //             Programme = s.ProgcodeNavigation.Progname,
+    //             Batch = s.Batch,
+    //             Sid = s.Sid,
+    //         }).FirstOrDefaultAsync();
+    //
+    //     if (student == null)
+    //     {
+    //         student = new StudentSenpai();
+    //     }
+    //
+    //     return student;
+    // }
 
     public async Task<List<Response>> GetInstitutes(short limit = 100)
     {
@@ -509,6 +510,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                             // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
                             errorCount++;
                         }
+                        else if (errorCount >= 30)
+                        {
+                            Console.Out.WriteLine($"Key not found: {s.Subcode}\n {r.Enrolno} {r.Name}");
+                            // Exit the loop
+                            return;
+                        }
                     }
                 }
 
@@ -574,8 +581,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         
         int count = ranklist.Count;
 
-        ranklist =  ranklist.OrderByDescending(r => r.Sgpa).ThenBy(r => r.Marks)
-            .Skip(pageNumber * pageSize).Take(pageSize).ToList();
+        ranklist =  ranklist.OrderByDescending(r => r.Sgpa).ThenBy(r => r.Marks).ToList();
         if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiSemester
@@ -594,11 +600,21 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Subject = new List<Dictionary<string, string>>()
             });
         }
-        for (int i = 0; i < ranklist.Count; i++)
+        int i = 0;
+        int rank = 0;
+        while (i < ranklist.Count)
         {
-            ranklist[i].Rank = i + 1;
+            if (float.Abs(ranklist[i-1].Sgpa - ranklist[i].Sgpa) < float.Epsilon)
+            {
+                ranklist[i].Rank = rank;
+            }
+            else
+            {
+                ranklist[i].Rank = ++rank;
+            }
+            i++;
         }
-        return (ranklist, count);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
     }
 
     public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string progcode, string batch,
@@ -798,9 +814,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         });
         
         int count = ranklist.Count;
-        
-        ranklist =  ranklist.OrderByDescending(r => r.Cgpa).ThenBy(r => r.Marks)
-            .Skip(pageNumber * pageSize).Take(pageSize).ToList();
+
+        ranklist = ranklist.OrderByDescending(r => r.Cgpa).ThenByDescending(r => r.Marks).ToList();
+            
         if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiOverall
@@ -821,11 +837,322 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             });
         }
 
-        for (int i = 0; i < ranklist.Count; i++)
+        int i = 0;
+        int rank = 0;
+        while (i < ranklist.Count)
         {
-            ranklist[i].Rank = i + 1;
+            if (float.Abs(ranklist[i-1].Cgpa - ranklist[i].Cgpa) < float.Epsilon)
+            {
+                ranklist[i].Rank = rank;
+            }
+            else
+            {
+                ranklist[i].Rank = ++rank;
+            }
+            i++;
         }
-        return (ranklist, count);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
+    }
+    
+    public StudentSenpai GetStudent(string enrolno)
+    {
+        Console.Out.WriteLine($"Enrolno: {enrolno}");
+        
+        var student = _context.Students
+            .Where(s => s.Enrolno == enrolno)
+            .Select(s => new
+            {
+                Enrolno = s.Enrolno,
+                Name = s.Name,
+                Instcode = s.Instcode,
+                Institute = s.InstcodeNavigation.Instname,
+                Progcode = s.Progcode,
+                Programme = s.ProgcodeNavigation.Progname,
+                Batch = s.Batch,
+                Sid = s.Sid,
+            }).FirstOrDefault();
+        
+        if (student == null)
+        {
+            return new StudentSenpai
+            {
+                Enrollment = "No results found",
+                Name = "No results found",
+            };
+        }
+        
+        _context.ChangeTracker.LazyLoadingEnabled = false;
+        var results = (from r in _context.Results.AsNoTracking()
+            where r.EnrolnoNavigation.Enrolno == enrolno
+            select new
+            {
+                r.Subcode,
+                r.Internal,
+                r.External,
+                r.Total,
+                r.Semester,
+                r.Exam,
+                r.Resultdate
+            }).ToList();
+
+        // Group the data locally
+        var groupedResult = results.GroupBy(s => s.Semester)
+            .Select(s => new
+            {
+                Semester = s.Key,
+                Subs = s.GroupBy(sub => sub.Subcode)
+                    .Select(subGroup => subGroup.OrderBy(sub => GetExamType(sub.Exam)).First())
+                    .Select(sub => new
+                    {
+                        Subcode = sub.Subcode,
+                        Internal = sub.Internal,
+                        External = sub.External,
+                        Total = sub.Total,
+                        Exam = sub.Exam,
+                        ExamType = GetExamType(sub.Exam)
+                    })
+            }).ToList();
+
+        if (groupedResult.Count == 0)
+        {
+            return new StudentSenpai
+            {
+                Enrollment = "No results found",
+                Name = "No results found",
+                Marks = 0,
+                Total = 0,
+                CreditMarks = 0,
+                TotalCredits = 0,
+                TotalCreditMarks = 0,
+                Percentage = 0,
+                CreditsPercentage = 0,
+                TotalCreditMarksWeighted = 0,
+                Cgpa = 0,
+                SgpaAllSem = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
+                MarksPerSemester = new ConcurrentBag<ConcurrentDictionary<string, int>>(),
+            };
+        }
+        
+        var subject = GetSubjectsByEnrollment(enrolno).Result;
+        
+        List<RankSenpaiSemester> ranklistSem = new();
+        object subjectLock = new();
+        short errorCount = 0;
+        
+        StudentSenpai studentSenpai = new()
+        {
+            Enrollment = enrolno,
+            Name = student.Name,
+            Marks = 0,
+            CreditMarks = 0,
+            TotalCreditMarks = 0,
+            TotalCreditMarksWeighted = 0,
+            TotalCredits = 0,
+            Total = 0,
+            Cgpa = 0,
+            Percentage = 0,
+            CreditsPercentage = 0,
+            MarksPerSemester = new ConcurrentBag<ConcurrentDictionary<string, int>>(),
+            Subject = new ConcurrentBag<ConcurrentDictionary<string, object>>(),
+            CgpaBySem = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
+            CumulativePercentageBySem = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
+            CgpaByYear = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
+            CumulativePercentageByYear = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
+            SgpaAllSem = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
+            Semesters = groupedResult.Count,
+        };
+
+        int marks = 0;
+        int total = 0;
+        int creditmarks = 0; // Total marks weighted by credits
+        int totalcredits = 0; // Total credits
+        int totalcreditmarksweighted = 0; // Total marks weighted by grade points
+        int totalcreditmarks = 0; // Max marks
+        float weightedsgpa = 0;
+
+        Parallel.ForEach(groupedResult, s =>
+        {
+            int semestermarks = 0;
+            int semestertotal = 0;
+            int semestercreditmarks = 0;
+            int semestercredits = 0;
+            int semestercreditmarksweighted = 0;
+            int semestercreditmarksmax = 0;
+
+            studentSenpai.Subject.Add(new()
+            {
+                ["semester"] = s.Semester.ToString(),
+                ["subjects"] = new List<Dictionary<string, string>>()
+            });
+            
+            Parallel.ForEach(s.Subs, sub =>
+            {
+                if (!subject.ContainsKey(sub.Subcode))
+                {
+                    lock (subjectLock)
+                    {
+                        if (!subject.ContainsKey(sub.Subcode) && errorCount < 30)
+                        {
+                            subject = subject.Concat(GetSubjectsByEnrollment(enrolno).Result)
+                                .ToLookup(k => k.Key, v => v.Value)
+                                .ToDictionary(k => k.Key, v => v.First());
+                            // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
+                            errorCount++;
+                        }
+                        // if (errorCount <= 30)
+                        // {
+                        //     Console.Out.WriteLine($"Key not found: {sub.Subcode}\n {enrolno} {student.Name}");
+                        //     // Exit the loop
+                        //     return;
+                        // }
+                    }
+                }
+
+                try
+                {
+                    var maxmarks = int.Parse(subject[sub.Subcode]["maxmarks"]);
+                    var credits = int.Parse(subject[sub.Subcode]["credits"]);
+                    semestermarks += sub.Total ?? 0;
+                    semestertotal += maxmarks;
+                    semestercreditmarks += credits * sub.Total ?? 0;
+                    semestercreditmarksweighted += credits *
+                                                   MathSenpai.GetGradePoint(sub.Total ?? 0);
+                    semestercreditmarksmax += credits * maxmarks;
+                    semestercredits += credits;
+                    
+                    // Umm, race condition? I know this is a mess
+                    try
+                    {
+                        ((List<Dictionary<string, string>>)studentSenpai.Subject.First(p => p["semester"].ToString() == s.Semester.ToString())["subjects"])
+                            .Add(new Dictionary<string, string>
+                            {
+                                ["subcode"] = sub.Subcode,
+                                ["subname"] = subject[sub.Subcode]["papername"],
+                                ["credits"] = subject[sub.Subcode]["credits"],
+                                ["paperid"] = subject[sub.Subcode]["paperid"],
+                                ["internal"] = sub.Internal.ToString() ?? "0",
+                                ["external"] = sub.External.ToString() ?? "0",
+                                ["total"] = sub.Total.ToString() ?? "0",
+                                ["exam"] = sub.Exam,
+                                ["grade"] = MathSenpai.GetGrade(sub.Total ?? 0),
+                                ["ExamType"] = sub.ExamType.StringValue()
+                            });
+                    } catch (InvalidOperationException e)
+                    {
+                        Console.Out.WriteLine($"ALERT!\nSemester not found: {s.Semester}\n {enrolno} {student.Name}");
+                    }
+
+                }
+                catch (KeyNotFoundException e)
+                {
+                    Console.Out.WriteLine($"Key not found: {sub.Subcode}\n {enrolno} {student.Name}");
+                }
+            });
+
+            marks += semestermarks;
+            total += semestertotal;
+            creditmarks += semestercreditmarks;
+            totalcreditmarksweighted += semestercreditmarksweighted;
+            totalcreditmarks += semestercreditmarksmax;
+            totalcredits += semestercredits;
+            var sgpa = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits);
+            weightedsgpa += sgpa * semestercredits;
+            studentSenpai.SgpaAllSem.Add(new()
+            {
+                ["semester"] = s.Semester.ToString(),
+                ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture)
+            });
+            studentSenpai.MarksPerSemester.Add(new()
+            {
+                ["semester"] = s.Semester,
+                ["marks"] = semestermarks,
+                ["total"] = semestertotal,
+                ["creditmarks"] = semestercreditmarks,
+                ["totalcreditmarks"] = semestercreditmarksmax,
+                ["totalcredits"] = semestercredits,
+                ["totalcreditmarksweighted"] = semestercreditmarksweighted
+            });
+        });
+
+        studentSenpai.Marks = marks;
+        studentSenpai.Total = total;
+        studentSenpai.CreditMarks = creditmarks;
+        studentSenpai.TotalCredits = totalcredits;
+        studentSenpai.TotalCreditMarks = totalcreditmarks;
+        if (total != 0)
+        {
+            studentSenpai.Percentage = (float)marks / total * 100;
+        }
+        else
+        {
+            studentSenpai.Percentage = 0;
+        }
+        if (totalcreditmarks != 0)
+        {
+            studentSenpai.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
+        } else
+        {
+            studentSenpai.CreditsPercentage = 0;
+        }
+        studentSenpai.TotalCreditMarksWeighted = totalcreditmarksweighted;
+        studentSenpai.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
+
+        var sems = studentSenpai.SgpaAllSem.Select(s => int.Parse(s["semester"])).OrderBy(s => s).ToList();
+        var weightedSgpa = 0f;
+        var totalCredits = 0;
+        var sgpaCovered = new List<int>();
+        foreach (var sem in sems)
+        {
+            sgpaCovered.Add(sem);
+            var sgpa = float.Parse(studentSenpai.SgpaAllSem.First(s => int.Parse(s["semester"]) == sem)["sgpa"]);
+            var credits = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["totalcredits"];
+            weightedSgpa += sgpa * credits;
+            totalCredits += credits;
+            studentSenpai.CgpaBySem.Add(new()
+            {
+                ["semester"] = sgpaCovered.Select(s => s.ToString()).Aggregate((s1, s2) => s1 + "+" + s2),
+                ["cgpa"] = MathSenpai.GetCgpa(weightedSgpa, totalCredits).ToString(CultureInfo.InvariantCulture)
+            });
+            var _marks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["marks"];
+            var _creditMarks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["creditmarks"];
+            var _total = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["total"];
+            var _totaCreditMarks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["totalcreditmarks"];
+            studentSenpai.CumulativePercentageBySem.Add(new()
+            {
+                ["semester"] = sgpaCovered.Select(s => s.ToString()).Aggregate((s1, s2) => s1 + "+" + s2),
+                ["percentage"] = (float)_marks / _total * 100 + "%",
+                ["creditspercentage"] = (float)_creditMarks / _totaCreditMarks * 100 + "%"
+            });
+        }
+        // for (int i = 0; i < sems.Count; i++)
+        // {
+        //     var _sems = sems.Take(i + 1).ToList();
+        //     var _weightedSgpa = 0f;
+        //     var _totalCredits = 0;
+        //     foreach (var sem in _sems)
+        //     {
+        //         _weightedSgpa += float.Parse(studentSenpai.SgpaAllSem.First(s => int.Parse(s["semester"]) == sem)["sgpa"]) *
+        //                          studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["totalcredits"];
+        //         _totalCredits += studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["totalcredits"];
+        //     }
+        //     studentSenpai.CgpaByYear.Add(new()
+        //     {
+        //         ["semester"] = _sems.Select(s => s.ToString()).Aggregate((s1, s2) => s1 + "+" + s2),
+        //         ["cgpa"] = MathSenpai.GetCgpa(_weightedSgpa, _totalCredits).ToString(CultureInfo.InvariantCulture)
+        //     });
+        //     var _marks = _sems.Select(s => studentSenpai.MarksPerSemester.First(s => s["semester"].ToString() == s.ToString())["marks"]).Sum();
+        //     var _creditMarks = _sems.Select(s => studentSenpai.MarksPerSemester.First(s => s["semester"].ToString() == s.ToString())["creditmarks"]).Sum();
+        //     var _total = _sems.Select(s => studentSenpai.MarksPerSemester.First(s => s["semester"].ToString() == s.ToString())["total"]).Sum();
+        //     var _totaCreditMarks = _sems.Select(s => studentSenpai.MarksPerSemester.First(s => s["semester"].ToString() == s.ToString())["totalcreditmarks"]).Sum();
+        //     studentSenpai.CumulativePercentageByYear.Add(new()
+        //     {
+        //         ["semester"] = _sems.Select(s => s.ToString()).Aggregate((s1, s2) => s1 + "+" + s2),
+        //         ["percentage"] = (float)_marks / _total * 100 + "%",
+        //         ["creditspercentage"] = (float)_creditMarks / _totaCreditMarks * 100 + "%"
+        //     });
+        // }
+        
+        return studentSenpai;
     }
     
 }

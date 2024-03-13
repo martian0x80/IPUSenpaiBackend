@@ -3,7 +3,7 @@ namespace IPUSenpaiBackend.IPUSenpai;
 
 public interface IIPUSenpaiAPI
 {
-    public Task<StudentSenpai> GetStudentByEnrollment(string? enrollment);
+    // public Task<StudentSenpai> GetStudentByEnrollment(string? enrollment);
     public Task<List<Response>> GetInstitutes(short limit = 79);
     public Task<List<PartialResponse>> GetInstitutesByProgramme(string programme, short limit = 79);
     public Task<List<PartialResponse>> GetProgrammes(short limit = 30);
@@ -17,4 +17,5 @@ public interface IIPUSenpaiAPI
 
     public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string progcode, string batch, string sem, int pageNumber, int pageSize);
     public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string progcode, string batch, int pageNumber, int pageSize);
+    public StudentSenpai GetStudent(string enrollment);
 }
