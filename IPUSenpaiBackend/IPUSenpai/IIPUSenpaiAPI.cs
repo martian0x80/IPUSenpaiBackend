@@ -18,4 +18,5 @@ public interface IIPUSenpaiAPI
     public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string progcode, string batch, string sem, int pageNumber, int pageSize);
     public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string progcode, string batch, int pageNumber, int pageSize);
     public StudentSenpai GetStudent(string enrollment);
+    public Task<List<StudentSearchSenpai>> SearchStudent(StudentSearchFilterOptionsSenpai filter);
 }

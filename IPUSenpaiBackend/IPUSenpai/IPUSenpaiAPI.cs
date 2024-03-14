@@ -158,7 +158,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             .OrderBy(pi => pi.ProgcodeNavigation.Spec)
             .Select(pi => new Response
             {
-                Name = pi.ProgcodeNavigation!.Spec,
+                Name = pi.ProgcodeNavigation.Spec,
                 Value = pi.Progcode
             })
             .Distinct()
@@ -245,7 +245,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             })
             .Take(1)
             .FirstOrDefaultAsync();
-        return institute;
+        return institute ?? new InstituteSenpai();
     }
 
     public async Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode)
@@ -261,10 +261,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             })
             .Take(1)
             .FirstOrDefaultAsync();
-        return programme;
+        return programme ?? new ProgrammeSenpai();
     }
 
-    public async Task<List<PartialResponse>> GetSemestersByProgrammeInstnameBatch(string programme, string institute, string batch)
+    public async Task<List<PartialResponse>> GetSemestersByProgrammeInstnameBatch(string programme, string institute,
+        string batch)
     {
         _context.ChangeTracker.LazyLoadingEnabled = false;
         var semesters = await _context.Results.AsNoTracking()
@@ -279,7 +280,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             })
             .OrderBy(r => r.Name)
             .ToListAsync();
-        
+
         return semesters;
     }
 
@@ -310,7 +311,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             join s in _context.Subjects on r.Subcode equals s.Subcode
             join st in _context.Students on r.Enrolno equals st.Enrolno
             // where s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid
-            where (s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid)// || (!s.Paperid.Contains(st.Progcode) && r.Schemeid != s.Schemeid)
+            where (s.Paperid.Contains(st.Progcode) ||
+                   r.Schemeid == s.Schemeid) // || (!s.Paperid.Contains(st.Progcode) && r.Schemeid != s.Schemeid)
             group new { r, s, st } by new { s.Subcode, s.Paperid, s.Papername, s.Passmarks, s.Maxmarks, s.Credits }
             into g
             select new
@@ -334,34 +336,26 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }).GroupBy(g => g["subcode"]).ToDictionary(g => g.Key, g => g.First());
         //    .ToDictionary(g => g["subcode"], g => g);
     }
-    
+
     private enum ExamType
     {
-        [StringValue("SUPPLEMENTARY")]
-        Supplementary,
-            
-        [StringValue("REVISED SUPPLEMENTARY")]
-        RevisedSupplementary,
+        [StringValue("SUPPLEMENTARY")] Supplementary,
 
-        [StringValue("RECHECKING REAPPEAR")]
-        RecheckReappear,
+        [StringValue("REVISED SUPPLEMENTARY")] RevisedSupplementary,
 
-        [StringValue("REVISED REAPPEAR")]
-        RevisedReappear,
+        [StringValue("RECHECKING REAPPEAR")] RecheckReappear,
 
-        [StringValue("REAPPEAR")]
-        Reappear,
+        [StringValue("REVISED REAPPEAR")] RevisedReappear,
 
-        [StringValue("RECHECKING REGULAR")]
-        RecheckRegular,
+        [StringValue("REAPPEAR")] Reappear,
 
-        [StringValue("REVISED REGULAR")]
-        RevisedRegular,
+        [StringValue("RECHECKING REGULAR")] RecheckRegular,
 
-        [StringValue("REGULAR")]
-        Regular,
+        [StringValue("REVISED REGULAR")] RevisedRegular,
+
+        [StringValue("REGULAR")] Regular,
     }
-    
+
     private ExamType GetExamType(string exam)
     {
         foreach (ExamType examType in Enum.GetValues(typeof(ExamType)))
@@ -375,7 +369,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return ExamType.Regular;
     }
 
-    public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string progcode, string batch, string sem,
+    public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string progcode, string batch,
+        string sem,
         int pageNumber = 1, int pageSize = 10)
     {
         Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}");
@@ -455,7 +450,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Semester = g.Select(s => s.Semester).FirstOrDefault(),
                 Resultdate = g.Select(s => s.Resultdate).FirstOrDefault()
             }).ToList();
-        
+
         if (groupedResult.Count == 0)
         {
             return (new List<RankSenpaiSemester>
@@ -477,6 +472,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 }
             }, 0);
         }
+
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
 
         List<RankSenpaiSemester> ranklist = new();
@@ -505,7 +501,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     {
                         if (!subject.ContainsKey(s.Subcode) && errorCount < 30)
                         {
-                            subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno).Result).ToLookup(k => k.Key, v => v.Value)
+                            subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno).Result)
+                                .ToLookup(k => k.Key, v => v.Value)
                                 .ToDictionary(k => k.Key, v => v.First());
                             // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
                             errorCount++;
@@ -544,7 +541,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                         }
                     );
                 }
-                catch (KeyNotFoundException e)
+                catch (KeyNotFoundException _)
                 {
                     // If key is not found retry
                     Console.Out.WriteLine($"Key not found: {s.Subcode}\n {r.Enrolno} {r.Name}\n Schemeid: {s.Exam}");
@@ -565,6 +562,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 rank.Percentage = 0;
             }
+
             if (totalcreditmarks != 0)
             {
                 rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
@@ -573,15 +571,16 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 rank.CreditsPercentage = 0;
             }
+
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Sgpa = MathSenpai.GetSgpa(totalcreditmarksweighted, totalcredits);
 
             ranklist.Add(rank);
         });
-        
+
         int count = ranklist.Count;
 
-        ranklist =  ranklist.OrderByDescending(r => r.Sgpa).ThenBy(r => r.Marks).ToList();
+        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenBy(r => r.Marks).ToList();
         if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiSemester
@@ -600,12 +599,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Subject = new List<Dictionary<string, string>>()
             });
         }
+
         int i = 1;
         int rank = 1;
         ranklist[0].Rank = rank;
         while (i < ranklist.Count)
         {
-            if (float.Abs(ranklist[i-1].Sgpa - ranklist[i].Sgpa) < 0.0001f)
+            if (float.Abs(ranklist[i - 1].Sgpa - ranklist[i].Sgpa) < 0.0001f)
             {
                 ranklist[i].Rank = rank;
             }
@@ -613,8 +613,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 ranklist[i].Rank = ++rank;
             }
+
             i++;
         }
+
         return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
     }
 
@@ -689,7 +691,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 }
             }, 0);
         }
-        
+
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
 
         List<RankSenpaiOverall> ranklist = new();
@@ -731,7 +733,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                         {
                             if (!subject.ContainsKey(sub.Subcode) && errorCount < 30)
                             {
-                                subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno).Result).ToLookup(k => k.Key, v => v.Value)
+                                subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno).Result)
+                                    .ToLookup(k => k.Key, v => v.Value)
                                     .ToDictionary(k => k.Key, v => v.First());
                                 // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
                                 errorCount++;
@@ -801,23 +804,26 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 rank.Percentage = 0;
             }
+
             if (totalcreditmarks != 0)
             {
                 rank.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
-            } else
+            }
+            else
             {
                 rank.CreditsPercentage = 0;
             }
+
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
 
             ranklist.Add(rank);
         });
-        
+
         int count = ranklist.Count;
 
         ranklist = ranklist.OrderByDescending(r => r.Cgpa).ThenByDescending(r => r.Marks).ToList();
-            
+
         if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiOverall
@@ -843,7 +849,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         ranklist[0].Rank = rank;
         while (i < ranklist.Count)
         {
-            if (float.Abs(ranklist[i-1].Cgpa - ranklist[i].Cgpa) < 0.0001f)
+            if (float.Abs(ranklist[i - 1].Cgpa - ranklist[i].Cgpa) < 0.0001f)
             {
                 ranklist[i].Rank = rank;
             }
@@ -851,15 +857,17 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 ranklist[i].Rank = ++rank;
             }
+
             i++;
         }
+
         return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
     }
-    
+
     public StudentSenpai GetStudent(string enrolno)
     {
         Console.Out.WriteLine($"Enrolno: {enrolno}");
-        
+
         var student = _context.Students
             .Where(s => s.Enrolno == enrolno)
             .Select(s => new
@@ -873,7 +881,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Batch = s.Batch,
                 Sid = s.Sid,
             }).FirstOrDefault();
-        
+
         if (student == null)
         {
             return new StudentSenpai
@@ -882,7 +890,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Name = "No results found",
             };
         }
-        
+
         _context.ChangeTracker.LazyLoadingEnabled = false;
         var results = (from r in _context.Results.AsNoTracking()
             where r.EnrolnoNavigation.Enrolno == enrolno
@@ -934,13 +942,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 MarksPerSemester = new ConcurrentBag<ConcurrentDictionary<string, int>>(),
             };
         }
-        
+
         var subject = GetSubjectsByEnrollment(enrolno).Result;
-        
+
         List<RankSenpaiSemester> ranklistSem = new();
         object subjectLock = new();
         short errorCount = 0;
-        
+
         StudentSenpai studentSenpai = new()
         {
             Enrollment = enrolno,
@@ -992,7 +1000,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 ["semester"] = s.Semester.ToString(),
                 ["subjects"] = new List<Dictionary<string, string>>()
             });
-            
+
             Parallel.ForEach(s.Subs, sub =>
             {
                 if (!subject.ContainsKey(sub.Subcode))
@@ -1027,11 +1035,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                                                    MathSenpai.GetGradePoint(sub.Total ?? 0);
                     semestercreditmarksmax += credits * maxmarks;
                     semestercredits += credits;
-                    
+
                     // Umm, race condition? I know this is a mess
                     try
                     {
-                        ((List<Dictionary<string, string>>)studentSenpai.Subject.First(p => p["semester"].ToString() == s.Semester.ToString())["subjects"])
+                        ((List<Dictionary<string, string>>)studentSenpai.Subject.First(p =>
+                                p["semester"].ToString() == s.Semester.ToString())["subjects"])
                             .Add(new Dictionary<string, string>
                             {
                                 ["subcode"] = sub.Subcode,
@@ -1045,7 +1054,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                                 ["grade"] = MathSenpai.GetGrade(sub.Total ?? 0),
                                 ["ExamType"] = sub.ExamType.StringValue()
                             });
-                    } catch (InvalidOperationException e)
+                    }
+                    catch (InvalidOperationException e)
                     {
                         Console.Out.WriteLine($"ALERT!\nSemester not found: {s.Semester}\n {enrolno} {student.Name}");
                     }
@@ -1095,13 +1105,16 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         {
             studentSenpai.Percentage = 0;
         }
+
         if (totalcreditmarks != 0)
         {
             studentSenpai.CreditsPercentage = (float)creditmarks / totalcreditmarks * 100;
-        } else
+        }
+        else
         {
             studentSenpai.CreditsPercentage = 0;
         }
+
         studentSenpai.TotalCreditMarksWeighted = totalcreditmarksweighted;
         studentSenpai.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
 
@@ -1159,8 +1172,40 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         ["creditspercentage"] = (float)_creditMarks / _totaCreditMarks * 100 + "%"
         //     });
         // }
-        
+
         return studentSenpai;
     }
-    
+
+    public async Task<List<StudentSearchSenpai>> SearchStudent(StudentSearchFilterOptionsSenpai? filter)
+    {
+        if (filter != null)
+        {
+            var students = _context.Students.Where(s => s.Name.Contains(filter.Name));
+
+            if (!string.IsNullOrEmpty(filter.Institute))
+            {
+                students = students.Where(s => s.InstcodeNavigation.Instname == filter.Institute);
+            }
+
+            if (!string.IsNullOrEmpty(filter.Programme))
+            {
+                students = students.Where(s => s.ProgcodeNavigation.Prog == filter.Programme);
+            }
+
+            if (!string.IsNullOrEmpty(filter.Batch))
+            {
+                students = students.Where(s => s.Batch.ToString() == filter.Batch);
+            }
+
+            return await students.Select(s => new StudentSearchSenpai
+            {
+                Enrollment = s.Enrolno,
+                Name = s.Name,
+                Institute = s.InstcodeNavigation.Instname,
+                Programme = s.ProgcodeNavigation.Prog,
+                Batch = s.Batch.ToString(),
+            }).ToListAsync();
+        }
+        return new List<StudentSearchSenpai>();
+    }
 }

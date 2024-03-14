@@ -283,7 +283,7 @@ public class IPUSenpaiController : ControllerBase
     
     [HttpGet]
     [Route("rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}")]
-    public List<RankSenpaiSemester> GetRankSem(string instcode, string progcode, string batch, string sem, int pageNumber, int pageSize)
+    public List<RankSenpaiSemester> GetRankSem(string instcode, string progcode, string batch, string sem, int pageNumber = 1, int pageSize = 60)
     {
         IHeaderDictionary headers = Response.Headers;
         if (_enableCache)
@@ -399,5 +399,19 @@ public class IPUSenpaiController : ControllerBase
             _cache.SetString($"GetStudent_{enrollment}", JsonSerializer.Serialize(student));
         }
         return student;
+    }
+
+    [HttpGet]
+    //[Route("student/search/name={Name}&institute={Institute}&prog={Programme}&batch={Batch}")]
+    [Route("student/search/{name}")]
+    public async Task<List<StudentSearchSenpai>> SearchStudent(string? name = "", string? institute = "", string? programme = "", string? batch = "")
+    {
+        return await _api.SearchStudent(new StudentSearchFilterOptionsSenpai
+        {
+            Name = name,
+            Institute = institute,
+            Programme = programme,
+            Batch = batch,
+        });
     }
 }
