@@ -208,6 +208,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     Name = "Evening",
                     Value = institutes[1].ToString()
                 });
+                
+                shifts.Add(new Response
+                {
+                    Name = "All",
+                    Value = "*"
+                });
             }
 
             if (institutes.Count > 2)
@@ -369,11 +375,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return ExamType.Regular;
     }
 
-    public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string progcode, string batch,
+    public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string? instname, string progcode, string batch,
         string sem,
         int pageNumber = 1, int pageSize = 10)
     {
-        Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}");
+        Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}, Instname: {instname}");
         /*
          * select st.enrolno from results r inner join student st on st.enrolno=r.enrolno where st.enrolno like '___'||'962'||'027'||right('2022',2) and r.semester=1 group by st.enrolno;
          * select st.enrolno from results r inner join student st on st.enrolno=r.enrolno where st.instcode=962 and st.progcode='027' and st.batch=2022 and r.semester=1 group by st.enrolno;
@@ -409,14 +415,47 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         Resultdate = g.Select(s => s.Resultdate).FirstOrDefault()
         //     }).ToList();
         */
+        
+        // The last working version
+        
+        // var results = (from r in _context.Results.AsNoTracking()
+        //     where r.EnrolnoNavigation.Instcode.ToString() == instcode
+        //           && r.EnrolnoNavigation.Progcode == progcode
+        //           && r.EnrolnoNavigation.Batch.ToString() == batch
+        //           && r.Semester.ToString() == sem
+        //     orderby r.Enrolno
+        //     select new
+        //     {
+        //         r.Enrolno,
+        //         r.EnrolnoNavigation.Name,
+        //         r.Subcode,
+        //         r.Internal,
+        //         r.External,
+        //         r.Total,
+        //         r.Semester,
+        //         r.Exam,
+        //         r.Resultdate
+        //     }).ToList();
+
         _context.ChangeTracker.LazyLoadingEnabled = false;
-        var results = (from r in _context.Results.AsNoTracking()
-            where r.EnrolnoNavigation.Instcode.ToString() == instcode
-                  && r.EnrolnoNavigation.Progcode == progcode
-                  && r.EnrolnoNavigation.Batch.ToString() == batch
-                  && r.Semester.ToString() == sem
-            orderby r.Enrolno
-            select new
+        var resultsQuery = _context.Results.AsNoTracking()
+            // .Include(r => r.EnrolnoNavigation)
+            .Where(r => r.EnrolnoNavigation.Progcode == progcode
+                        && r.EnrolnoNavigation.Batch.ToString() == batch
+                        && r.Semester.ToString() == sem);
+
+        if (instcode == "*")
+        {
+            resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
+        }
+        else
+        {
+            resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.Instcode.ToString() == instcode);
+        }
+        
+        var results = resultsQuery
+            .OrderBy(r => r.Enrolno)
+            .Select(r => new
             {
                 r.Enrolno,
                 r.EnrolnoNavigation.Name,
@@ -620,18 +659,50 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
     }
 
-    public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string progcode, string batch,
+    public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string? instname, string progcode, string batch,
         int pageNumber = 1, int pageSize = 10)
     {
-        Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: Overall");
-
+        Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: Overall, Instname: {instname}");
+        
+        // Last working version
+        
+        // _context.ChangeTracker.LazyLoadingEnabled = false;
+        // var results = (from r in _context.Results.AsNoTracking()
+        //     where r.EnrolnoNavigation.Instcode.ToString() == instcode
+        //           && r.EnrolnoNavigation.Progcode == progcode
+        //           && r.EnrolnoNavigation.Batch.ToString() == batch
+        //     orderby r.Enrolno
+        //     select new
+        //     {
+        //         r.Enrolno,
+        //         r.EnrolnoNavigation.Name,
+        //         r.Subcode,
+        //         r.Internal,
+        //         r.External,
+        //         r.Total,
+        //         r.Semester,
+        //         r.Exam,
+        //         r.Resultdate
+        //     }).ToList();
+        
         _context.ChangeTracker.LazyLoadingEnabled = false;
-        var results = (from r in _context.Results.AsNoTracking()
-            where r.EnrolnoNavigation.Instcode.ToString() == instcode
-                  && r.EnrolnoNavigation.Progcode == progcode
-                  && r.EnrolnoNavigation.Batch.ToString() == batch
-            orderby r.Enrolno
-            select new
+        var resultsQuery = _context.Results.AsNoTracking()
+            // .Include(r => r.EnrolnoNavigation)
+            .Where(r => r.EnrolnoNavigation.Progcode == progcode
+                        && r.EnrolnoNavigation.Batch.ToString() == batch);
+        
+        if (instcode == "*")
+        {
+            resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
+        }
+        else
+        {
+            resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.Instcode.ToString() == instcode);
+        }
+        
+        var results = resultsQuery
+            .OrderBy(r => r.Enrolno)
+            .Select(r => new
             {
                 r.Enrolno,
                 r.EnrolnoNavigation.Name,
@@ -643,7 +714,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 r.Exam,
                 r.Resultdate
             }).ToList();
-
+        
+        
 
         // Group the data locally
         var groupedResult = results.GroupBy(g => g.Enrolno)
