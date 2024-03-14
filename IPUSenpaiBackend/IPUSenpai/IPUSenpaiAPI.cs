@@ -619,7 +619,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         int count = ranklist.Count;
 
-        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenBy(r => r.Marks).ToList();
+        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).ToList();
         if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiSemester
