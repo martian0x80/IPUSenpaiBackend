@@ -282,9 +282,13 @@ public class IPUSenpaiController : ControllerBase
     }
     
     [HttpGet]
-    [Route("rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}")]
-    public List<RankSenpaiSemester> GetRankSem(string instcode, string progcode, string batch, string sem, int pageNumber = 1, int pageSize = 60)
+    [Route("rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
+    public List<RankSenpaiSemester> GetRankSem(string instcode, string? instname, string progcode, string batch, string sem, int pageNumber = 1, int pageSize = 60)
     {
+        if (instcode == "*" && instname == null)
+        {
+            throw new Exception("Institute name is required when instcode is *");
+        }
         IHeaderDictionary headers = Response.Headers;
         if (_enableCache)
         {
@@ -304,7 +308,7 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
-        var resp = _api.GetRanklistBySemester(instcode, progcode, batch, sem, pageNumber, pageSize);
+        var resp = _api.GetRanklistBySemester(instcode, instname, progcode, batch, sem, pageNumber, pageSize);
         var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
         if (_enableCache)
         {
@@ -322,9 +326,13 @@ public class IPUSenpaiController : ControllerBase
     }
     
     [HttpGet]
-    [Route("rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}")]
-    public List<RankSenpaiOverall> GetRank(string instcode, string progcode, string batch, int pageNumber, int pageSize)
+    [Route("rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
+    public List<RankSenpaiOverall> GetRank(string instcode, string? instname, string progcode, string batch, int pageNumber, int pageSize)
     {
+        if (instcode == "*" && instname == null)
+        {
+            throw new Exception("Institute name is required when instcode is *");
+        }
         IHeaderDictionary headers = Response.Headers;
         if (_enableCache)
         {
@@ -344,7 +352,7 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
-        var resp =  _api.GetRanklistOverall(instcode, progcode, batch, pageNumber, pageSize);
+        var resp =  _api.GetRanklistOverall(instcode, instname, progcode, batch, pageNumber, pageSize);
         var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
         if (_enableCache)
         {
