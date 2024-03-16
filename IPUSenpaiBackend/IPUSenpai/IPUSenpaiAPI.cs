@@ -686,8 +686,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     CreditsPercentage = 0,
                     TotalCreditMarksWeighted = 0,
                     Cgpa = 0,
-                    SgpaAllSem = new List<Dictionary<string, string>>(),
-                    MarksPerSemester = new List<Dictionary<string, int>>()
+//                    SgpaAllSem = new List<Dictionary<string, string>>(),
+                    MarksPerSemester = new List<Dictionary<string, string>>()
                 }
             }, 0);
         }
@@ -704,8 +704,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 Enrollment = r.Enrolno,
                 Name = r.Name,
-                MarksPerSemester = new List<Dictionary<string, int>>(),
-                SgpaAllSem = new List<Dictionary<string, string>>(),
+                MarksPerSemester = new List<Dictionary<string, string>>(),
+//                SgpaAllSem = new List<Dictionary<string, string>>(),
                 Semesters = r.Semester.Count
             };
 
@@ -774,20 +774,21 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 totalcredits += semestercredits;
                 var sgpa = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits);
                 weightedsgpa += sgpa * semestercredits;
-                rank.SgpaAllSem.Add(new Dictionary<string, string>
+                // rank.SgpaAllSem.Add(new Dictionary<string, string>
+                // {
+                //     ["semester"] = s.Semester.ToString(),
+                //     ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture)
+                // });
+                rank.MarksPerSemester.Add(new Dictionary<string, string>
                 {
                     ["semester"] = s.Semester.ToString(),
+                    ["marks"] = semestermarks.ToString(),
+                    ["total"] = semestertotal.ToString(),
+                    ["creditmarks"] = semestercreditmarks.ToString(),
+                    ["totalcreditmarks"] = semestercreditmarksmax.ToString(),
+                    ["totalcredits"] = semestercredits.ToString(),
+                    ["totalcreditmarksweighted"] = semestercreditmarksweighted.ToString(),
                     ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture)
-                });
-                rank.MarksPerSemester.Add(new Dictionary<string, int>
-                {
-                    ["semester"] = s.Semester,
-                    ["marks"] = semestermarks,
-                    ["total"] = semestertotal,
-                    ["creditmarks"] = semestercreditmarks,
-                    ["totalcreditmarks"] = semestercreditmarksmax,
-                    ["totalcredits"] = semestercredits,
-                    ["totalcreditmarksweighted"] = semestercreditmarksweighted
                 });
             });
 
@@ -839,8 +840,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 CreditsPercentage = 69,
                 TotalCreditMarksWeighted = 69,
                 Cgpa = 6.9f,
-                SgpaAllSem = new List<Dictionary<string, string>>(),
-                MarksPerSemester = new List<Dictionary<string, int>>()
+//                SgpaAllSem = new List<Dictionary<string, string>>(),
+                MarksPerSemester = new List<Dictionary<string, string>>()
             });
         }
 
