@@ -860,7 +860,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     ["totalcreditmarks"] = semestercreditmarksmax.ToString(),
                     ["totalcredits"] = semestercredits.ToString(),
                     ["totalcreditmarksweighted"] = semestercreditmarksweighted.ToString(),
-                    ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture)
+                    ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture),
+                    ["percentage"] = (float)semestermarks / semestertotal * 100 + "%",
+                    ["creditspercentage"] = (float)semestercreditmarks / semestercreditmarksmax * 100 + "%"
                 });
             });
 
