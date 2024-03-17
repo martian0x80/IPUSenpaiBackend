@@ -20,7 +20,7 @@ public class IPUSenpaiController : ControllerBase
     };
     public readonly DistributedCacheEntryOptions CacheOptions = new DistributedCacheEntryOptions
     {
-        SlidingExpiration = TimeSpan.FromSeconds(60 * 60)
+        SlidingExpiration = TimeSpan.FromSeconds(60 * 60 * 24 * 7) // 1 week
     };
     
     public IPUSenpaiController(IIPUSenpaiAPI api, ILogger<IPUSenpaiController> logger, IDistributedCache cache)
