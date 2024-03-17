@@ -128,6 +128,32 @@ public class IPUSenpaiController : ControllerBase
         }
         return institutes;
     }
+
+    [HttpGet]
+    [Route("specializations/{limit?}")]
+    public async Task<List<Response>> GetSpecializations(short limit = 200)
+    {
+        if (_enableCache)
+        {
+            var cachedSpecializations = await _cache.GetStringAsync($"GetSpecializations_limit={limit}");
+            if (!string.IsNullOrEmpty(cachedSpecializations))
+            {
+                try {
+                    return JsonSerializer.Deserialize<List<Response>>(cachedSpecializations);
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached specializations");
+                }
+            }
+        }
+        var specializations = await _api.GetSpecializations(limit);
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync($"GetSpecializations_limit={limit}", JsonSerializer.Serialize(specializations), CacheOptions);
+        }
+        return specializations;
+    }
     
     [HttpGet]
     [Route("specializations/programme={programme}&institute={instname}/{limit?}")]

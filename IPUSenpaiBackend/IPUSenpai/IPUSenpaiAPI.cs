@@ -35,6 +35,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public IPUSenpaiAPI(IPUSenpaiDBContext context, ILogger<IPUSenpaiAPI> logger)
     {
+        // Dependency Injections go brrr
         _logger = logger;
         _context = context;
     }
@@ -137,6 +138,32 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
 
         return programmes;
+    }
+
+    public async Task<List<Response>> GetSpecializations(short limit = 30) {
+        var specializations = await _context.Programmes
+            .OrderBy(pi => pi.Spec)
+            .Select(pi => new Response
+            {
+                Name = pi.Spec,
+                Value = pi.Progcode
+            })
+            .Distinct()
+            .ToListAsync();
+
+        if (specializations.Count == 0)
+        {
+            return new List<Response>
+            {
+                new Response
+                {
+                    Name = "No specializations found",
+                    Value = "No specializations found"
+                }
+            };
+        }
+
+        return specializations;
     }
 
     public async Task<List<Response>> GetSpecializationsByProgrammeAndInstname(short limit = 30,
