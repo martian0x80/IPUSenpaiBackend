@@ -439,8 +439,13 @@ public class IPUSenpaiController : ControllerBase
     [HttpGet]
     //[Route("student/search/name={Name}&institute={Institute}&prog={Programme}&batch={Batch}")]
     [Route("student/search/{name}")]
-    public async Task<List<StudentSearchSenpai>> SearchStudent(string? name = "", string? institute = "", string? programme = "", string? batch = "")
+    public async Task<List<StudentSearchSenpai>> SearchStudent(string name = "", string? institute = "", string? programme = "", string? batch = "")
     {
+        if (name.Length < 3)
+        {
+            return new List<StudentSearchSenpai>();
+        }
+        
         if (_enableCache)
         {
             var cachedSearch = await _cache.GetStringAsync($"SearchStudent_{name}_{institute}_{programme}_{batch}");

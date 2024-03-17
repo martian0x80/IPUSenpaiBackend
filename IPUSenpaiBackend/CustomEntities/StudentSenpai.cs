@@ -4,11 +4,11 @@ namespace IPUSenpaiBackend.CustomEntities;
 
 public class StudentSearchSenpai
 {
-    public string? Enrollment { get; set; }
-    public string? Name { get; set; }
-    public string? Institute { get; set; }
-    public string? Programme { get; set; }
-    public string? Batch { get; set; }
+    public string? Enrollment { get; set; } = "696969696969";
+    public string? Name { get; set; } = "No results";
+    public string? Institute { get; set; } = "Jujutsu Tech";
+    public string? Programme { get; set; } = "B.Tech";
+    public string? Batch { get; set; } = "2022";
 }
 
 public class StudentSearchFilterOptionsSenpai
