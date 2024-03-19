@@ -17,6 +17,7 @@ public sealed class StringValueAttribute : Attribute
 
     public string Value { get; }
 }
+
 public static class EnumExtensions
 {
     public static string StringValue<T>(this T value)
@@ -113,6 +114,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Name = "No institutes found",
             });
         }
+        else
+        {
+            programmes.Insert(0, new PartialResponse
+            {
+                Name = "ALL INSTITUTES"
+            });
+        }
 
         return programmes;
     }
@@ -140,7 +148,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return programmes;
     }
 
-    public async Task<List<Response>> GetSpecializations(short limit = 30) {
+    public async Task<List<Response>> GetSpecializations(short limit = 30)
+    {
         var specializations = await _context.Programmes
             .OrderBy(pi => pi.Spec)
             .Select(pi => new Response
@@ -208,6 +217,18 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<List<Response>> GetInstituteCodesForShifts(string instname)
     {
+        if (instname == "ALL INSTITUTES")
+        {
+            return new List<Response>
+            {
+                new Response
+                {
+                    Name = "All",
+                    Value = "*"
+                }
+            };
+        }
+
         var institutes = await _context.Institutes
             .Where(i => i.Instname == instname)
             .Select(i => i.Instcode)
@@ -235,7 +256,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     Name = "Evening",
                     Value = institutes[1].ToString()
                 });
-                
+
                 shifts.Add(new Response
                 {
                     Name = "All",
@@ -402,11 +423,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return ExamType.Regular;
     }
 
-    public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string? instname, string progcode, string batch,
+    public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string? instname, string progcode,
+        string batch,
         string sem,
-        int pageNumber = 1, int pageSize = 10)
+        int pageNumber = 0, int pageSize = 10)
     {
-        Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}, Instname: {instname}");
+        Console.Out.WriteLine(
+            $"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}, Instname: {instname}");
         /*
          * select st.enrolno from results r inner join student st on st.enrolno=r.enrolno where st.enrolno like '___'||'962'||'027'||right('2022',2) and r.semester=1 group by st.enrolno;
          * select st.enrolno from results r inner join student st on st.enrolno=r.enrolno where st.instcode=962 and st.progcode='027' and st.batch=2022 and r.semester=1 group by st.enrolno;
@@ -442,9 +465,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         Resultdate = g.Select(s => s.Resultdate).FirstOrDefault()
         //     }).ToList();
         */
-        
+
         // The last working version
-        
+
         // var results = (from r in _context.Results.AsNoTracking()
         //     where r.EnrolnoNavigation.Instcode.ToString() == instcode
         //           && r.EnrolnoNavigation.Progcode == progcode
@@ -471,15 +494,19 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                         && r.EnrolnoNavigation.Batch.ToString() == batch
                         && r.Semester.ToString() == sem);
 
-        if (instcode == "*")
+        if (instcode == "*" && !string.IsNullOrEmpty(instname))
         {
             resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
         }
-        else
+        // else if (instcode == "*" && string.IsNullOrEmpty(instname))
+        // {
+        //     resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
+        // }
+        else if (instcode != "*")
         {
             resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.Instcode.ToString() == instcode);
         }
-        
+
         var results = resultsQuery
             .OrderBy(r => r.Enrolno)
             .Select(r => new
@@ -611,7 +638,6 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 {
                     // If key is not found retry
                     Console.Out.WriteLine($"Key not found: {s.Subcode}\n {r.Enrolno} {r.Name}\n Schemeid: {s.Exam}");
-
                 }
             });
 
@@ -686,13 +712,15 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
     }
 
-    public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string? instname, string progcode, string batch,
-        int pageNumber = 1, int pageSize = 10)
+    public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string? instname, string progcode,
+        string batch,
+        int pageNumber = 0, int pageSize = 10)
     {
-        Console.Out.WriteLine($"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: Overall, Instname: {instname}");
-        
+        Console.Out.WriteLine(
+            $"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: Overall, Instname: {instname}");
+
         // Last working version
-        
+
         // _context.ChangeTracker.LazyLoadingEnabled = false;
         // var results = (from r in _context.Results.AsNoTracking()
         //     where r.EnrolnoNavigation.Instcode.ToString() == instcode
@@ -711,22 +739,22 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         r.Exam,
         //         r.Resultdate
         //     }).ToList();
-        
+
         _context.ChangeTracker.LazyLoadingEnabled = false;
         var resultsQuery = _context.Results.AsNoTracking()
             // .Include(r => r.EnrolnoNavigation)
             .Where(r => r.EnrolnoNavigation.Progcode == progcode
                         && r.EnrolnoNavigation.Batch.ToString() == batch);
-        
-        if (instcode == "*")
+
+        if (instcode == "*" && !string.IsNullOrEmpty(instname))
         {
             resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
         }
-        else
+        else if (instcode != "*")
         {
             resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.Instcode.ToString() == instcode);
         }
-        
+
         var results = resultsQuery
             .OrderBy(r => r.Enrolno)
             .Select(r => new
@@ -741,8 +769,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 r.Exam,
                 r.Resultdate
             }).ToList();
-        
-        
+
 
         // Group the data locally
         var groupedResult = results.GroupBy(g => g.Enrolno)
@@ -1161,7 +1188,6 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     {
                         Console.Out.WriteLine($"ALERT!\nSemester not found: {s.Semester}\n {enrolno} {student.Name}");
                     }
-
                 }
                 catch (KeyNotFoundException e)
                 {
@@ -1308,6 +1334,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Batch = s.Batch.ToString(),
             }).ToListAsync();
         }
+
         return new List<StudentSearchSenpai>();
     }
 }

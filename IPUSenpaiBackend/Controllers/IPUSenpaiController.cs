@@ -14,29 +14,31 @@ public class IPUSenpaiController : ControllerBase
     private readonly ILogger _logger;
     private readonly IDistributedCache _cache;
     private readonly bool _enableCache = true;
+
     public readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
     {
         NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals
     };
+
     public readonly DistributedCacheEntryOptions CacheOptions = new DistributedCacheEntryOptions
     {
         SlidingExpiration = TimeSpan.FromSeconds(60 * 60 * 24 * 7) // 1 week
     };
-    
+
     public IPUSenpaiController(IIPUSenpaiAPI api, ILogger<IPUSenpaiController> logger, IDistributedCache cache)
     {
         _api = api;
         _logger = logger;
         _cache = cache;
     }
-    
+
     [HttpGet]
     [Route("/")]
     public string Get()
     {
         return "Pani Puri Senpai API v1.0.0";
     }
-    
+
     // [HttpGet]
     // [Route("student/{enrollment}")]
     // // [EnableRateLimiting("tokenbucket")]
@@ -48,7 +50,7 @@ public class IPUSenpaiController : ControllerBase
     //     }
     //     return await _api.GetStudentByEnrollment(enrollment);
     // }
-    
+
     [HttpGet]
     [Route("programmes/{limit?}")]
     public async Task<List<PartialResponse>> GetProgrammes(short limit = 79)
@@ -74,9 +76,10 @@ public class IPUSenpaiController : ControllerBase
         {
             await _cache.SetStringAsync("GetProgrammes", JsonSerializer.Serialize(programmes), CacheOptions);
         }
+
         return programmes;
     }
-    
+
     [HttpGet]
     [Route("institutes/{limit?}")]
     public async Task<List<Response>> GetInstitutes(short limit = 50)
@@ -86,7 +89,8 @@ public class IPUSenpaiController : ControllerBase
             var cachedInstitutes = await _cache.GetStringAsync("GetInstitutes");
             if (!string.IsNullOrEmpty(cachedInstitutes))
             {
-                try {
+                try
+                {
                     return JsonSerializer.Deserialize<List<Response>>(cachedInstitutes);
                 }
                 catch (JsonException e)
@@ -95,14 +99,16 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
+
         var institutes = await _api.GetInstitutes(limit);
         if (_enableCache)
         {
             await _cache.SetStringAsync("GetInstitutes", JsonSerializer.Serialize(institutes), CacheOptions);
         }
+
         return institutes;
     }
-    
+
     [HttpGet]
     [Route("institutes/programme={programme}/{limit?}")]
     public async Task<List<PartialResponse>> GetInstitutes(string programme, short limit = 100)
@@ -112,7 +118,8 @@ public class IPUSenpaiController : ControllerBase
             var cachedInstitutes = await _cache.GetStringAsync($"GetInstitutesByProgramme_{programme}_limit={limit}");
             if (!string.IsNullOrEmpty(cachedInstitutes))
             {
-                try {
+                try
+                {
                     return JsonSerializer.Deserialize<List<PartialResponse>>(cachedInstitutes);
                 }
                 catch (JsonException e)
@@ -121,11 +128,14 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
+
         var institutes = await _api.GetInstitutesByProgramme(programme, limit);
         if (_enableCache)
         {
-            await _cache.SetStringAsync($"GetInstitutesByProgramme_{programme}_limit={limit}", JsonSerializer.Serialize(institutes), CacheOptions);
+            await _cache.SetStringAsync($"GetInstitutesByProgramme_{programme}_limit={limit}",
+                JsonSerializer.Serialize(institutes), CacheOptions);
         }
+
         return institutes;
     }
 
@@ -138,7 +148,8 @@ public class IPUSenpaiController : ControllerBase
             var cachedSpecializations = await _cache.GetStringAsync($"GetSpecializations_limit={limit}");
             if (!string.IsNullOrEmpty(cachedSpecializations))
             {
-                try {
+                try
+                {
                     return JsonSerializer.Deserialize<List<Response>>(cachedSpecializations);
                 }
                 catch (JsonException e)
@@ -147,24 +158,30 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
+
         var specializations = await _api.GetSpecializations(limit);
         if (_enableCache)
         {
-            await _cache.SetStringAsync($"GetSpecializations_limit={limit}", JsonSerializer.Serialize(specializations), CacheOptions);
+            await _cache.SetStringAsync($"GetSpecializations_limit={limit}", JsonSerializer.Serialize(specializations),
+                CacheOptions);
         }
+
         return specializations;
     }
-    
+
     [HttpGet]
     [Route("specializations/programme={programme}&institute={instname}/{limit?}")]
     public async Task<List<Response>> GetSpecializations(string programme, string instname, short limit = 100)
     {
         if (_enableCache)
         {
-            var cachedSpecializations = await _cache.GetStringAsync($"GetSpecializationsByProgrammeAndInstname_{programme}_{instname}_limit={limit}");
+            var cachedSpecializations =
+                await _cache.GetStringAsync(
+                    $"GetSpecializationsByProgrammeAndInstname_{programme}_{instname}_limit={limit}");
             if (!string.IsNullOrEmpty(cachedSpecializations))
             {
-                try {
+                try
+                {
                     return JsonSerializer.Deserialize<List<Response>>(cachedSpecializations);
                 }
                 catch (JsonException e)
@@ -173,14 +190,18 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
+
         var specializations = await _api.GetSpecializationsByProgrammeAndInstname(limit, programme, instname);
         if (_enableCache)
         {
-            await _cache.SetStringAsync($"GetSpecializationsByProgrammeAndInstname_{programme}_{instname}_limit={limit}", JsonSerializer.Serialize(specializations), CacheOptions);
+            await _cache.SetStringAsync(
+                $"GetSpecializationsByProgrammeAndInstname_{programme}_{instname}_limit={limit}",
+                JsonSerializer.Serialize(specializations), CacheOptions);
         }
+
         return specializations;
     }
-    
+
     [HttpGet]
     [Route("institute/shifts/{instname}")]
     public Task<List<Response>> GetInstituteShifts(string instname)
@@ -190,7 +211,8 @@ public class IPUSenpaiController : ControllerBase
             var cachedShifts = _cache.GetString($"GetInstituteShifts_{instname}");
             if (!string.IsNullOrEmpty(cachedShifts))
             {
-                try {
+                try
+                {
                     return Task.FromResult(JsonSerializer.Deserialize<List<Response>>(cachedShifts));
                 }
                 catch (JsonException e)
@@ -199,14 +221,16 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
+
         var shifts = _api.GetInstituteCodesForShifts(instname);
         if (_enableCache)
         {
             _cache.SetString($"GetInstituteShifts_{instname}", JsonSerializer.Serialize(shifts), CacheOptions);
         }
+
         return shifts;
     }
-    
+
     [HttpGet]
     [Route("batches/programme={programme}&institute={institute}")]
     public async Task<List<Response>> GetBatches(string programme, string institute)
@@ -216,7 +240,8 @@ public class IPUSenpaiController : ControllerBase
             var cachedBatches = await _cache.GetStringAsync($"GetBatchesByPrognameAndInstname_{programme}_{institute}");
             if (!string.IsNullOrEmpty(cachedBatches))
             {
-                try {
+                try
+                {
                     return JsonSerializer.Deserialize<List<Response>>(cachedBatches);
                 }
                 catch (JsonException e)
@@ -256,7 +281,7 @@ public class IPUSenpaiController : ControllerBase
 
         var batches = await _api.GetBatchesByPrognameAndInstname(programme, institute);
         var batchMap = new List<Response>();
-        
+
         if (courseDurations.ContainsKey(programme))
         {
             int duration = courseDurations[programme];
@@ -268,24 +293,27 @@ public class IPUSenpaiController : ControllerBase
                     {
                         Name = $"{batches[i]}-{((short)(batches[i] + duration))}",
                         Value = batches[i].ToString()
-                    
                     });
                 }
             }
         }
+
         var serializedBatches = JsonSerializer.Serialize(batchMap);
         if (_enableCache)
         {
-            await _cache.SetStringAsync($"GetBatchesByPrognameAndInstname_{programme}_{institute}", serializedBatches, CacheOptions);
+            await _cache.SetStringAsync($"GetBatchesByPrognameAndInstname_{programme}_{institute}", serializedBatches,
+                CacheOptions);
         }
+
         return batchMap;
     }
-    
+
     [HttpGet]
     [Route("semesters/programme={programme}&institute={institute}&batch={batch}")]
     public async Task<List<PartialResponse>> GetSemesters(string programme, string institute, string batch)
     {
-        if (_enableCache) {
+        if (_enableCache)
+        {
             var cachedSemesters =
                 await _cache.GetStringAsync($"GetSemestersByProgrammeAndInstname_{programme}_{institute}_{batch}");
             if (!string.IsNullOrEmpty(cachedSemesters))
@@ -300,29 +328,37 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
+
         var semesters = await _api.GetSemestersByProgrammeInstnameBatch(programme, institute, batch);
-        if (_enableCache) {
+        if (_enableCache)
+        {
             await _cache.SetStringAsync($"GetSemestersByProgrammeAndInstname_{programme}_{institute}_{batch}",
                 JsonSerializer.Serialize(semesters), CacheOptions);
         }
+
         return semesters;
     }
-    
+
     [HttpGet]
-    [Route("rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
-    public List<RankSenpaiSemester> GetRankSem(string instcode, string? instname, string progcode, string batch, string sem, int pageNumber = 1, int pageSize = 60)
+    [Route(
+        "rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
+    public List<RankSenpaiSemester> GetRankSem(string instcode, string? instname, string progcode, string batch,
+        string sem, int pageNumber = 1, int pageSize = 60)
     {
-        if (instcode == "*" && instname == null)
-        {
-            throw new Exception("Institute name is required when instcode is *");
-        }
+        // if (instcode == "*" && instname == null)
+        // {
+        //     throw new Exception("Institute name is required when instcode is *");
+        // }
         IHeaderDictionary headers = Response.Headers;
         if (_enableCache)
         {
-            var cachedRank = _cache.GetString($"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}");
+            var cachedRank =
+                _cache.GetString(
+                    $"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}");
             if (!string.IsNullOrEmpty(cachedRank))
             {
-                try {
+                try
+                {
                     var rank = JsonSerializer.Deserialize<Tuple<List<RankSenpaiSemester>, int>>(cachedRank);
                     var rankList = rank.Item1;
                     headers.Append("X-Total-Page-Count", rank.Item2.ToString());
@@ -335,38 +371,47 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
+
         var resp = _api.GetRanklistBySemester(instcode, instname, progcode, batch, sem, pageNumber, pageSize);
         var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
         if (_enableCache)
         {
             _cache.SetString(
                 $"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}",
-                JsonSerializer.Serialize(new Tuple<List<RankSenpaiSemester>, int>(resp.Item1, pageCount), SerializerOptions), CacheOptions);
+                JsonSerializer.Serialize(new Tuple<List<RankSenpaiSemester>, int>(resp.Item1, pageCount),
+                    SerializerOptions), CacheOptions);
         }
+
         _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
         if (headers.ContainsKey("X-Total-Page-Count"))
         {
             headers.Remove("X-Total-Page-Count");
         }
+
         headers.Append("X-Total-Page-Count", pageCount.ToString());
         return resp.Item1;
     }
-    
+
     [HttpGet]
-    [Route("rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
-    public List<RankSenpaiOverall> GetRank(string instcode, string? instname, string progcode, string batch, int pageNumber, int pageSize)
+    [Route(
+        "rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
+    public List<RankSenpaiOverall> GetRank(string instcode, string? instname, string progcode, string batch,
+        int pageNumber, int pageSize)
     {
-        if (instcode == "*" && instname == null)
-        {
-            throw new Exception("Institute name is required when instcode is *");
-        }
+        // if (instcode == "*" && instname == null)
+        // {
+        //     throw new Exception("Institute name is required when instcode is *");
+        // }
         IHeaderDictionary headers = Response.Headers;
         if (_enableCache)
         {
-            var cachedRank = _cache.GetString($"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}");
+            var cachedRank =
+                _cache.GetString(
+                    $"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}");
             if (!string.IsNullOrEmpty(cachedRank))
             {
-                try {
+                try
+                {
                     var rank = JsonSerializer.Deserialize<Tuple<List<RankSenpaiOverall>, int>>(cachedRank);
                     var rankList = rank.Item1;
                     headers.Append("X-Total-Page-Count", rank.Item2.ToString());
@@ -379,37 +424,41 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
-        var resp =  _api.GetRanklistOverall(instcode, instname, progcode, batch, pageNumber, pageSize);
+
+        var resp = _api.GetRanklistOverall(instcode, instname, progcode, batch, pageNumber, pageSize);
         var pageCount = (int)Math.Ceiling((double)resp.Item2 / pageSize);
         if (_enableCache)
         {
             _cache.SetString(
                 $"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}",
-                JsonSerializer.Serialize(new Tuple<List<RankSenpaiOverall>, int>(resp.Item1, pageCount), SerializerOptions), CacheOptions);
+                JsonSerializer.Serialize(new Tuple<List<RankSenpaiOverall>, int>(resp.Item1, pageCount),
+                    SerializerOptions), CacheOptions);
         }
+
         _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
         if (headers.ContainsKey("X-Total-Page-Count"))
         {
             headers.Remove("X-Total-Page-Count");
         }
+
         headers.Append("X-Total-Page-Count", pageCount.ToString());
         return resp.Item1;
     }
-    
+
     [HttpGet]
     [Route("institute/{instcode}")]
     public async Task<InstituteSenpai> GetInstitute(short instcode)
     {
         return await _api.GetInstituteByInstcode(instcode);
     }
-    
+
     [HttpGet]
     [Route("programme/{progcode}")]
     public async Task<ProgrammeSenpai> GetProgramme(string progcode)
     {
         return await _api.GetProgrammeByProgcode(progcode);
     }
-    
+
     [HttpGet]
     [Route("student/{enrollment}")]
     public StudentSenpai GetStudent(string enrollment)
@@ -419,7 +468,8 @@ public class IPUSenpaiController : ControllerBase
             var cachedStudent = _cache.GetString($"GetStudent_{enrollment}");
             if (!string.IsNullOrEmpty(cachedStudent))
             {
-                try {
+                try
+                {
                     return JsonSerializer.Deserialize<StudentSenpai>(cachedStudent);
                     _logger.LogInformation("\n[I] Returning cached student");
                 }
@@ -429,23 +479,27 @@ public class IPUSenpaiController : ControllerBase
                 }
             }
         }
+
         var student = _api.GetStudent(enrollment);
-        if (_enableCache) {
+        if (_enableCache)
+        {
             _cache.SetString($"GetStudent_{enrollment}", JsonSerializer.Serialize(student), CacheOptions);
         }
+
         return student;
     }
 
     [HttpGet]
     //[Route("student/search/name={Name}&institute={Institute}&prog={Programme}&batch={Batch}")]
     [Route("student/search/{name}")]
-    public async Task<List<StudentSearchSenpai>> SearchStudent(string name = "", string? institute = "", string? programme = "", string? batch = "")
+    public async Task<List<StudentSearchSenpai>> SearchStudent(string name = "", string? institute = "",
+        string? programme = "", string? batch = "")
     {
         if (name.Length < 3)
         {
             return new List<StudentSearchSenpai>();
         }
-        
+
         if (_enableCache)
         {
             var cachedSearch = await _cache.GetStringAsync($"SearchStudent_{name}_{institute}_{programme}_{batch}");
@@ -471,8 +525,10 @@ public class IPUSenpaiController : ControllerBase
         });
         if (_enableCache)
         {
-            await _cache.SetStringAsync($"SearchStudent_{name}_{institute}_{programme}_{batch}", JsonSerializer.Serialize(search), CacheOptions);
+            await _cache.SetStringAsync($"SearchStudent_{name}_{institute}_{programme}_{batch}",
+                JsonSerializer.Serialize(search), CacheOptions);
         }
+
         return search;
     }
 }
