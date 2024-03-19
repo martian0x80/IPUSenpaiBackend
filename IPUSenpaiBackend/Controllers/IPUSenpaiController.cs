@@ -319,7 +319,7 @@ public class IPUSenpaiController : ControllerBase
         IHeaderDictionary headers = Response.Headers;
         if (_enableCache)
         {
-            var cachedRank = _cache.GetString($"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}");
+            var cachedRank = _cache.GetString($"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}");
             if (!string.IsNullOrEmpty(cachedRank))
             {
                 try {
@@ -340,7 +340,7 @@ public class IPUSenpaiController : ControllerBase
         if (_enableCache)
         {
             _cache.SetString(
-                $"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}",
+                $"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}",
                 JsonSerializer.Serialize(new Tuple<List<RankSenpaiSemester>, int>(resp.Item1, pageCount), SerializerOptions), CacheOptions);
         }
         _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
@@ -363,7 +363,7 @@ public class IPUSenpaiController : ControllerBase
         IHeaderDictionary headers = Response.Headers;
         if (_enableCache)
         {
-            var cachedRank = _cache.GetString($"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}");
+            var cachedRank = _cache.GetString($"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}");
             if (!string.IsNullOrEmpty(cachedRank))
             {
                 try {
@@ -384,7 +384,7 @@ public class IPUSenpaiController : ControllerBase
         if (_enableCache)
         {
             _cache.SetString(
-                $"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}",
+                $"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}",
                 JsonSerializer.Serialize(new Tuple<List<RankSenpaiOverall>, int>(resp.Item1, pageCount), SerializerOptions), CacheOptions);
         }
         _logger.LogInformation("\n[I] Returning fresh ranklist by semester");
