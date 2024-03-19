@@ -335,11 +335,16 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         string batch)
     {
         _context.ChangeTracker.LazyLoadingEnabled = false;
-        var semesters = await _context.Results.AsNoTracking()
+        var semestersQuery = _context.Results.AsNoTracking()
             // .Include(r => r.EnrolnoNavigation)
             .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme &&
-                        r.EnrolnoNavigation.InstcodeNavigation.Instname == institute &&
-                        r.Batch.ToString() == batch)
+                        r.Batch.ToString() == batch);
+        if (institute != "ALL INSTITUTES")
+        {
+            semestersQuery = semestersQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == institute);
+        }
+
+        var semesters = await semestersQuery
             .GroupBy(r => r.Semester)
             .Select(r => new PartialResponse
             {
@@ -507,7 +512,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                         && r.EnrolnoNavigation.Batch.ToString() == batch
                         && r.Semester.ToString() == sem);
 
-        if (instcode == "*" && !string.IsNullOrEmpty(instname))
+        if (instcode == "*" && !string.IsNullOrEmpty(instname) && instname != "ALL INSTITUTES")
         {
             resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
         }
@@ -759,7 +764,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             .Where(r => r.EnrolnoNavigation.Progcode == progcode
                         && r.EnrolnoNavigation.Batch.ToString() == batch);
 
-        if (instcode == "*" && !string.IsNullOrEmpty(instname))
+        if (instcode == "*" && !string.IsNullOrEmpty(instname) && instname != "ALL INSTITUTES")
         {
             resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
         }
