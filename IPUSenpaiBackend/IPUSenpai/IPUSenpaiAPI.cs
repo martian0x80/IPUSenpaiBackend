@@ -189,8 +189,15 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         // .Take(limit)
         // .ToDictionaryAsync(p => p.Spec, p => p.Progcode);
 
-        var specializations = await _context.ProgrammesInstitutes
-            .Where(pi => pi.ProgcodeNavigation.Prog == prog && pi.InstcodeNavigation.Instname == instname)
+        var specializationsQuery = _context.ProgrammesInstitutes
+            .Where(pi => pi.ProgcodeNavigation.Prog == prog);
+
+        if (instname != "ALL INSTITUTES")
+        {
+            specializationsQuery = specializationsQuery.Where(pi => pi.InstcodeNavigation.Instname == instname);
+        }
+
+        var specializations = await specializationsQuery
             .OrderBy(pi => pi.ProgcodeNavigation.Spec)
             .Select(pi => new Response
             {
@@ -279,8 +286,14 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<List<short?>> GetBatchesByPrognameAndInstname(string programme, string institute)
     {
-        var batches = await _context.Students
-            .Where(s => s.ProgcodeNavigation.Prog == programme && s.InstcodeNavigation.Instname == institute)
+        var batchesQuery = _context.Students
+            .Where(s => s.ProgcodeNavigation.Prog == programme);
+        if (institute != "ALL INSTITUTES")
+        {
+            batchesQuery = batchesQuery.Where(s => s.InstcodeNavigation.Instname == institute);
+        }
+
+        var batches = await batchesQuery
             .GroupBy(s => s.Batch)
             .OrderByDescending(s => s.Key)
             .Select(s => s.Key)
