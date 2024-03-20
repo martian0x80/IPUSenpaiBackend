@@ -2,6 +2,7 @@ using System.Text.Json;
 using IPUSenpaiBackend.IPUSenpai;
 using IPUSenpaiBackend.CustomEntities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace IPUSenpaiBackend.Controllers;
@@ -22,7 +23,7 @@ public class IPUSenpaiController : ControllerBase
 
     public readonly DistributedCacheEntryOptions CacheOptions = new DistributedCacheEntryOptions
     {
-        SlidingExpiration = TimeSpan.FromSeconds(60 * 60 * 24 * 7) // 1 week
+        // SlidingExpiration = TimeSpan.FromSeconds(60 * 60 * 24 * 7) // 1 week
     };
 
     public IPUSenpaiController(IIPUSenpaiAPI api, ILogger<IPUSenpaiController> logger, IDistributedCache cache)
@@ -342,6 +343,7 @@ public class IPUSenpaiController : ControllerBase
     [HttpGet]
     [Route(
         "rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
+    [OutputCache(Duration = 60 * 60 * 24 * 7)]
     public List<RankSenpaiSemester> GetRankSem(string instcode, string? instname, string progcode, string batch,
         string sem, int pageNumber = 1, int pageSize = 60)
     {
@@ -395,6 +397,7 @@ public class IPUSenpaiController : ControllerBase
     [HttpGet]
     [Route(
         "rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
+    [OutputCache]
     public List<RankSenpaiOverall> GetRank(string instcode, string? instname, string progcode, string batch,
         int pageNumber, int pageSize)
     {

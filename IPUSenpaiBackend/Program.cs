@@ -4,6 +4,8 @@ using IPUSenpaiBackend.IPUSenpai;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http.Timeouts;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,28 +14,39 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer(); ;
+builder.Services.AddEndpointsApiExplorer();
+;
 builder.Services.AddScoped<IIPUSenpaiAPI, IPUSenpaiAPI>();
 builder.Services.AddLogging();
 if (builder.Environment.IsDevelopment())
 {
-    builder.Services.AddSwaggerGen(c =>
-    {
-        c.SwaggerDoc("v1", new() { Title = "IPUSenpaiBackend", Version = "v1" });
-    });
-    
+    builder.Services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new() { Title = "IPUSenpaiBackend", Version = "v1" }); });
 }
 
 builder.Services.AddDbContext<IPUSenpaiDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("CONNSTR")), ServiceLifetime.Scoped);
 
-builder.Services.AddResponseCompression();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
+builder.Services.AddOutputCache(options =>
+{
+    options.AddBasePolicy(policy => policy.Cache());
+    options.SizeLimit = 20;
+    options.DefaultExpirationTimeSpan = TimeSpan.FromMinutes(60);
+});
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("CONNSTR2");
     options.InstanceName = "";
 });
+
+// TODO: Add RateLimiter
 
 // builder.Services.AddRateLimiter(s =>
 // {
@@ -69,10 +82,19 @@ builder.Services.AddStackExchangeRedisCache(options =>
 //     });
 // });
 
+builder.Services.AddRequestTimeouts(options =>
+{
+    options.DefaultPolicy = new RequestTimeoutPolicy
+    {
+        Timeout = TimeSpan.FromMinutes(1),
+        TimeoutStatusCode = StatusCodes.Status408RequestTimeout
+    };
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(
-        policy  =>
+        policy =>
         {
             policy.AllowAnyOrigin();
             policy.AllowAnyHeader();
@@ -81,12 +103,19 @@ builder.Services.AddCors(options =>
         });
 });
 
+// TODO: Add CSRF support
+
 var app = builder.Build();
 
 // app.UseRateLimiter();
 
 app.UseCors();
+
 app.UseResponseCompression();
+
+app.UseOutputCache();
+
+app.UseRequestTimeouts();
 
 if (app.Environment.IsDevelopment())
 {
@@ -100,8 +129,6 @@ else
 }
 
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
 
 app.MapControllers();
 

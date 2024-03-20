@@ -358,6 +358,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsByEnrollment(string? enrollment)
     {
+        _logger.LogInformation($"Getting subjects for {enrollment}");
         /* To get subject details
          * select r.subcode, paperid, papername, passmarks, maxmarks, credits from results r left join subjects s on s.subcode = r.subcode full outer join student st on st.enrolno=r.enrolno where r.enrolno='01096202722' and (r.schemeid = s.schemeid or paperid like '%'||progcode::text||'%') group by r.subcode, papername, paperid, passmarks, maxmarks, credits;
          * I really hope not to use this query more than once
@@ -446,8 +447,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         string sem,
         int pageNumber = 0, int pageSize = 10)
     {
-        Console.Out.WriteLine(
-            $"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}, Instname: {instname}");
+        _logger.LogInformation(
+            $"\n[I] Grabbing semester ranklist for\nInstcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: {sem}, Instname: {instname}");
         /*
          * select st.enrolno from results r inner join student st on st.enrolno=r.enrolno where st.enrolno like '___'||'962'||'027'||right('2022',2) and r.semester=1 group by st.enrolno;
          * select st.enrolno from results r inner join student st on st.enrolno=r.enrolno where st.instcode=962 and st.progcode='027' and st.batch=2022 and r.semester=1 group by st.enrolno;
@@ -690,7 +691,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         int count = ranklist.Count;
 
-        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).ToList();
+        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).Skip(pageNumber * pageSize)
+            .Take(pageSize).ToList();
         if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiSemester
@@ -727,7 +729,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
+        return (ranklist, count);
     }
 
     public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string? instname, string progcode,
@@ -969,7 +971,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         int count = ranklist.Count;
 
-        ranklist = ranklist.OrderByDescending(r => r.Cgpa).ThenByDescending(r => r.Marks).ToList();
+        ranklist = ranklist.OrderByDescending(r => r.Cgpa).ThenByDescending(r => r.Marks).Skip(pageNumber * pageSize)
+            .Take(pageSize).ToList();
 
         if (errorCount >= 30)
         {
@@ -1008,7 +1011,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
+        return (ranklist, count);
     }
 
     public StudentSenpai GetStudent(string enrolno)
