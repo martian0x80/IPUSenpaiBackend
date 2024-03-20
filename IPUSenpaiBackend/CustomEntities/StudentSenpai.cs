@@ -38,14 +38,18 @@ public class StudentSenpai
     public float Cgpa { get; set; }
     public float Percentage { get; set; }
     public float CreditsPercentage { get; set; }
+
     public int Semesters { get; set; }
+
     //public List<Dictionary<string, string>> SgpaAllSem { get; set; }
-    public ConcurrentBag<ConcurrentDictionary<string, string>>? SgpaAllSem { get; set; }
-    public ConcurrentBag<ConcurrentDictionary<string, int>> MarksPerSemester { get; set; }
+    public List<Dictionary<string, string>>? SgpaAllSem { get; set; }
+
+    public List<Dictionary<string, int>>? MarksPerSemester { get; set; }
+
     // public List<Dictionary<string, List<Dictionary<string, string>>>>? Subject { get; set; } 
-    public ConcurrentBag<ConcurrentDictionary<string, object>>? Subject { get; set; }
-    public ConcurrentBag<ConcurrentDictionary<string, string>>? CgpaBySem { get; set; }
-    public ConcurrentBag<ConcurrentDictionary<string, string>>? CumulativePercentageBySem { get; set; }
-    public ConcurrentBag<ConcurrentDictionary<string, string>>? CgpaByYear { get; set; }
-    public ConcurrentBag<ConcurrentDictionary<string, string>>? CumulativePercentageByYear { get; set; }
+    public List<Dictionary<string, object>>? Subject { get; set; }
+    public List<Dictionary<string, string>>? CgpaBySem { get; set; }
+    public List<Dictionary<string, string>>? CumulativePercentageBySem { get; set; }
+    public List<Dictionary<string, string>>? CgpaByYear { get; set; }
+    public List<Dictionary<string, string>>? CumulativePercentageByYear { get; set; }
 }

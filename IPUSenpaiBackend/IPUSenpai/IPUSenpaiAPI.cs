@@ -1016,7 +1016,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public StudentSenpai GetStudent(string enrolno)
     {
-        Console.Out.WriteLine($"Enrolno: {enrolno}");
+        _logger.LogInformation($"\n [I] Getting student details for {enrolno}\n");
 
         var student = _context.Students
             .Where(s => s.Enrolno == enrolno)
@@ -1088,8 +1088,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 CreditsPercentage = 0,
                 TotalCreditMarksWeighted = 0,
                 Cgpa = 0,
-                SgpaAllSem = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
-                MarksPerSemester = new ConcurrentBag<ConcurrentDictionary<string, int>>(),
+                SgpaAllSem = new(),
+                MarksPerSemester = new(),
             };
         }
 
@@ -1118,13 +1118,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             Cgpa = 0,
             Percentage = 0,
             CreditsPercentage = 0,
-            MarksPerSemester = new ConcurrentBag<ConcurrentDictionary<string, int>>(),
-            Subject = new ConcurrentBag<ConcurrentDictionary<string, object>>(),
-            CgpaBySem = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
-            CumulativePercentageBySem = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
-            CgpaByYear = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
-            CumulativePercentageByYear = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
-            SgpaAllSem = new ConcurrentBag<ConcurrentDictionary<string, string>>(),
+            MarksPerSemester = new(),
+            Subject = new(),
+            CgpaBySem = new(),
+            CumulativePercentageBySem = new(),
+            CgpaByYear = new(),
+            CumulativePercentageByYear = new(),
+            SgpaAllSem = new(),
             Semesters = groupedResult.Count,
         };
 
@@ -1135,8 +1135,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         int totalcreditmarksweighted = 0; // Total marks weighted by grade points
         int totalcreditmarks = 0; // Max marks
         float weightedsgpa = 0;
+        List<string> subs = new();
 
-        Parallel.ForEach(groupedResult, s =>
+        foreach (var s in groupedResult)
         {
             int semestermarks = 0;
             int semestertotal = 0;
@@ -1151,7 +1152,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 ["subjects"] = new List<Dictionary<string, string>>()
             });
 
-            Parallel.ForEach(s.Subs, sub =>
+            foreach (var sub in s.Subs)
             {
                 if (!subject.ContainsKey(sub.Subcode))
                 {
@@ -1205,16 +1206,16 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                                 ["ExamType"] = sub.ExamType.StringValue()
                             });
                     }
-                    catch (InvalidOperationException e)
+                    catch (Exception e)
                     {
                         Console.Out.WriteLine($"ALERT!\nSemester not found: {s.Semester}\n {enrolno} {student.Name}");
                     }
                 }
-                catch (KeyNotFoundException e)
+                catch (Exception e)
                 {
                     Console.Out.WriteLine($"Key not found: {sub.Subcode}\n {enrolno} {student.Name}");
                 }
-            });
+            }
 
             marks += semestermarks;
             total += semestertotal;
@@ -1239,7 +1240,31 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 ["totalcredits"] = semestercredits,
                 ["totalcreditmarksweighted"] = semestercreditmarksweighted
             });
-        });
+        }
+
+        /*
+         *  _MarksPerSemester
+           _Subject
+           _CgpaBySem
+           _CumulativePercentageBySem
+           _CgpaByYear
+           _CumulativePercentageByYear
+           _SgpaAllSem
+         */
+
+        // I know this seems like a mess, but it's the best I could do, the json serializer didn't like the concurrentbag
+        // Don't judge me for my atrocities
+        //
+        // studentSenpai.MarksPerSemester = _MarksPerSemester.Select(dict => new Dictionary<string, int>(dict)).ToList();
+        // studentSenpai.Subject = _Subject.Select(dict => new Dictionary<string, object>(dict)).ToList();
+        // studentSenpai.CgpaBySem = _CgpaBySem.Select(dict => new Dictionary<string, string>(dict)).ToList();
+        // studentSenpai.CumulativePercentageBySem = _CumulativePercentageBySem.Select(dict => new Dictionary<string, string>(dict)).ToList();
+        // studentSenpai.CgpaByYear = _CgpaByYear.Select(dict => new Dictionary<string, string>(dict)).ToList();
+        // studentSenpai.CumulativePercentageByYear = _CumulativePercentageByYear.Select(dict => new Dictionary<string, string>(dict)).ToList();
+        // studentSenpai.SgpaAllSem = _SgpaAllSem.Select(dict => new Dictionary<string, string>(dict)).ToList();
+        //
+
+        // Nvm, fuck concurrency
 
         studentSenpai.Marks = marks;
         studentSenpai.Total = total;
@@ -1286,12 +1311,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             var _marks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["marks"];
             var _creditMarks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["creditmarks"];
             var _total = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["total"];
-            var _totaCreditMarks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["totalcreditmarks"];
+            var _totalCreditMarks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["totalcreditmarks"];
             studentSenpai.CumulativePercentageBySem.Add(new()
             {
                 ["semester"] = sgpaCovered.Select(s => s.ToString()).Aggregate((s1, s2) => s1 + "+" + s2),
                 ["percentage"] = (float)_marks / _total * 100 + "%",
-                ["creditspercentage"] = (float)_creditMarks / _totaCreditMarks * 100 + "%"
+                ["creditspercentage"] = (float)_creditMarks / _totalCreditMarks * 100 + "%"
             });
         }
         // for (int i = 0; i < sems.Count; i++)

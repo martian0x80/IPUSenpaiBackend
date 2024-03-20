@@ -343,7 +343,6 @@ public class IPUSenpaiController : ControllerBase
     [HttpGet]
     [Route(
         "rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
-    [OutputCache(Duration = 60 * 60 * 24 * 7)]
     public List<RankSenpaiSemester> GetRankSem(string instcode, string? instname, string progcode, string batch,
         string sem, int pageNumber = 1, int pageSize = 60)
     {
@@ -476,7 +475,7 @@ public class IPUSenpaiController : ControllerBase
                     return JsonSerializer.Deserialize<StudentSenpai>(cachedStudent);
                     _logger.LogInformation("\n[I] Returning cached student");
                 }
-                catch (JsonException e)
+                catch (Exception e)
                 {
                     _logger.LogError(e, "Error deserializing cached student");
                 }
@@ -486,7 +485,11 @@ public class IPUSenpaiController : ControllerBase
         var student = _api.GetStudent(enrollment);
         if (_enableCache)
         {
-            _cache.SetString($"GetStudent_{enrollment}", JsonSerializer.Serialize(student), CacheOptions);
+            _cache.SetString($"GetStudent_{enrollment}", JsonSerializer.Serialize(student),
+                new DistributedCacheEntryOptions
+                {
+                    SlidingExpiration = TimeSpan.FromMinutes(60 * 24)
+                });
         }
 
         return student;
