@@ -22,6 +22,7 @@ public class StudentSenpai
     public string? Enrollment { get; set; }
     public string? Name { get; set; }
     public string? Programme { get; set; }
+    public string? Specialization { get; set; }
     public string? Institute { get; set; }
     public string? Batch { get; set; }
     public string? Sid { get; set; }

@@ -1027,7 +1027,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Instcode = s.Instcode,
                 Institute = s.InstcodeNavigation.Instname,
                 Progcode = s.Progcode,
-                Programme = s.ProgcodeNavigation.Progname,
+                Programme = s.ProgcodeNavigation.Prog,
+                Spec = s.ProgcodeNavigation.Spec,
                 Batch = s.Batch,
                 Sid = s.Sid,
             }).FirstOrDefault();
@@ -1104,6 +1105,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             Institute = student.Institute,
             InstCode = student.Instcode.ToString(),
             Programme = student.Programme,
+            Specialization = student.Spec,
             ProgCode = student.Progcode,
             Batch = student.Batch.ToString(),
             Sid = student.Sid,
