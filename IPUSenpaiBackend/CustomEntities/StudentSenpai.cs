@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-
 namespace IPUSenpaiBackend.CustomEntities;
 
 public class StudentSearchSenpai
@@ -41,15 +39,15 @@ public class StudentSenpai
 
     public int Semesters { get; set; }
 
-    //public List<Dictionary<string, string>> SgpaAllSem { get; set; }
-    public List<Dictionary<string, string>>? SgpaAllSem { get; set; }
+    //public List<Dictionary<string, string>>? SgpaAllSem { get; set; }
 
-    public List<Dictionary<string, int>>? MarksPerSemester { get; set; }
+    public List<Dictionary<string, string>>? MarksPerSemester { get; set; }
 
     // public List<Dictionary<string, List<Dictionary<string, string>>>>? Subject { get; set; } 
     public List<Dictionary<string, object>>? Subject { get; set; }
-    public List<Dictionary<string, string>>? CgpaBySem { get; set; }
-    public List<Dictionary<string, string>>? CumulativePercentageBySem { get; set; }
-    public List<Dictionary<string, string>>? CgpaByYear { get; set; }
-    public List<Dictionary<string, string>>? CumulativePercentageByYear { get; set; }
+
+    public List<Dictionary<string, string>>? CumulativeResult { get; set; }
+    // public List<Dictionary<string, string>>? CumulativePercentageBySem { get; set; }
+    // public List<Dictionary<string, string>>? CgpaByYear { get; set; }
+    // public List<Dictionary<string, string>>? CumulativePercentageByYear { get; set; }
 }

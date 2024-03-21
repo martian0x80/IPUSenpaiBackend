@@ -103,8 +103,6 @@ builder.Services.AddCors(options =>
         });
 });
 
-// TODO: Add CSRF support
-
 var app = builder.Build();
 
 // app.UseRateLimiter();

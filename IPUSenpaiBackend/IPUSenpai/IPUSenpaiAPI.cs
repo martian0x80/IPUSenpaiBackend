@@ -1088,8 +1088,6 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 CreditsPercentage = 0,
                 TotalCreditMarksWeighted = 0,
                 Cgpa = 0,
-                SgpaAllSem = new(),
-                MarksPerSemester = new(),
             };
         }
 
@@ -1120,11 +1118,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             CreditsPercentage = 0,
             MarksPerSemester = new(),
             Subject = new(),
-            CgpaBySem = new(),
-            CumulativePercentageBySem = new(),
-            CgpaByYear = new(),
-            CumulativePercentageByYear = new(),
-            SgpaAllSem = new(),
+            CumulativeResult = new(),
+            // CumulativePercentageBySem = new(),
+            // CgpaByYear = new(),
+            // CumulativePercentageByYear = new(),
+            // SgpaAllSem = new()
             Semesters = groupedResult.Count,
         };
 
@@ -1225,20 +1223,19 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             totalcredits += semestercredits;
             var sgpa = MathSenpai.GetSgpa(semestercreditmarksweighted, semestercredits);
             weightedsgpa += sgpa * semestercredits;
-            studentSenpai.SgpaAllSem.Add(new()
-            {
-                ["semester"] = s.Semester.ToString(),
-                ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture)
-            });
             studentSenpai.MarksPerSemester.Add(new()
             {
-                ["semester"] = s.Semester,
-                ["marks"] = semestermarks,
-                ["total"] = semestertotal,
-                ["creditmarks"] = semestercreditmarks,
-                ["totalcreditmarks"] = semestercreditmarksmax,
-                ["totalcredits"] = semestercredits,
-                ["totalcreditmarksweighted"] = semestercreditmarksweighted
+                ["semester"] = s.Semester.ToString(),
+                ["marks"] = semestermarks.ToString(),
+                ["total"] = semestertotal.ToString(),
+                ["creditmarks"] = semestercreditmarks.ToString(),
+                ["totalcreditmarks"] = semestercreditmarksmax.ToString(),
+                ["totalcredits"] = semestercredits.ToString(),
+                ["totalcreditmarksweighted"] = semestercreditmarksweighted.ToString(),
+                ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture),
+                ["percentage"] = ((float)semestermarks / semestertotal * 100).ToString(CultureInfo.InvariantCulture),
+                ["creditspercentage"] =
+                    ((float)semestercreditmarks / semestercreditmarksmax * 100).ToString(CultureInfo.InvariantCulture)
             });
         }
 
@@ -1292,31 +1289,48 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         studentSenpai.TotalCreditMarksWeighted = totalcreditmarksweighted;
         studentSenpai.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
 
-        var sems = studentSenpai.SgpaAllSem.Select(s => int.Parse(s["semester"])).OrderBy(s => s).ToList();
+        var sems = studentSenpai.MarksPerSemester.Select(s => int.Parse(s["semester"])).OrderBy(s => s).ToList();
         var weightedSgpa = 0f;
         var totalCredits = 0;
+        var cmarks = 0;
+        var ctotal = 0;
+        var creditMarks = 0;
+        var totalCreditMarks = 0;
         var sgpaCovered = new List<int>();
         foreach (var sem in sems)
         {
             sgpaCovered.Add(sem);
-            var sgpa = float.Parse(studentSenpai.SgpaAllSem.First(s => int.Parse(s["semester"]) == sem)["sgpa"]);
-            var credits = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["totalcredits"];
+            var _sem = studentSenpai.MarksPerSemester.First(s => int.Parse(s["semester"]) == sem);
+            var sgpa = float.Parse(_sem["sgpa"]);
+            var credits = int.Parse(_sem["totalcredits"]);
             weightedSgpa += sgpa * credits;
             totalCredits += credits;
-            studentSenpai.CgpaBySem.Add(new()
+            // studentSenpai.CgpaBySem.Add(new()
+            // {
+            //     ["semester"] = sgpaCovered.Select(s => s.ToString()).Aggregate((s1, s2) => s1 + "+" + s2),
+            //     ["cgpa"] = MathSenpai.GetCgpa(weightedSgpa, totalCredits).ToString(CultureInfo.InvariantCulture)
+            // });
+            var _marks = int.Parse(_sem["marks"]);
+            var _creditMarks = int.Parse(_sem["creditmarks"]);
+            var _total = int.Parse(_sem["total"]);
+            var _totalCreditMarks = int.Parse(_sem["totalcreditmarks"]);
+
+            cmarks += _marks;
+            ctotal += _total;
+            creditMarks += _creditMarks;
+            totalCreditMarks += _totalCreditMarks;
+
+            studentSenpai.CumulativeResult.Add(new()
             {
                 ["semester"] = sgpaCovered.Select(s => s.ToString()).Aggregate((s1, s2) => s1 + "+" + s2),
-                ["cgpa"] = MathSenpai.GetCgpa(weightedSgpa, totalCredits).ToString(CultureInfo.InvariantCulture)
-            });
-            var _marks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["marks"];
-            var _creditMarks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["creditmarks"];
-            var _total = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["total"];
-            var _totalCreditMarks = studentSenpai.MarksPerSemester.First(s => s["semester"] == sem)["totalcreditmarks"];
-            studentSenpai.CumulativePercentageBySem.Add(new()
-            {
-                ["semester"] = sgpaCovered.Select(s => s.ToString()).Aggregate((s1, s2) => s1 + "+" + s2),
-                ["percentage"] = (float)_marks / _total * 100 + "%",
-                ["creditspercentage"] = (float)_creditMarks / _totalCreditMarks * 100 + "%"
+                ["cgpa"] = MathSenpai.GetCgpa(weightedSgpa, totalCredits).ToString(CultureInfo.InvariantCulture),
+                ["percentage"] = ((float)cmarks / ctotal * 100).ToString(CultureInfo.InvariantCulture),
+                ["creditspercentage"] =
+                    ((float)creditMarks / totalCreditMarks * 100).ToString(CultureInfo.InvariantCulture),
+                ["marks"] = cmarks.ToString(),
+                ["totalmarks"] = ctotal.ToString(),
+                ["creditmarks"] = creditMarks.ToString(),
+                ["totalcreditmarks"] = totalCreditMarks.ToString()
             });
         }
         // for (int i = 0; i < sems.Count; i++)
