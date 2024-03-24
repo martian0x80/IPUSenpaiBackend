@@ -1014,7 +1014,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return (ranklist, count);
     }
 
-    public StudentSenpai GetStudent(string enrolno)
+    public StudentSenpai? GetStudent(string enrolno)
     {
         _logger.LogInformation($"\n [I] Getting student details for {enrolno}\n");
 
@@ -1035,11 +1035,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         if (student == null)
         {
-            return new StudentSenpai
-            {
-                Enrollment = "No results found",
-                Name = "No results found",
-            };
+            return null;
         }
 
         _context.ChangeTracker.LazyLoadingEnabled = false;

@@ -463,7 +463,7 @@ public class IPUSenpaiController : ControllerBase
 
     [HttpGet]
     [Route("student/{enrollment}")]
-    public StudentSenpai GetStudent(string enrollment)
+    public IActionResult GetStudent(string enrollment)
     {
         if (_enableCache)
         {
@@ -472,7 +472,7 @@ public class IPUSenpaiController : ControllerBase
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<StudentSenpai>(cachedStudent);
+                    return Ok(JsonSerializer.Deserialize<StudentSenpai>(cachedStudent));
                     _logger.LogInformation("\n[I] Returning cached student");
                 }
                 catch (Exception e)
@@ -483,6 +483,11 @@ public class IPUSenpaiController : ControllerBase
         }
 
         var student = _api.GetStudent(enrollment);
+        if (student == null)
+        {
+            return NotFound(new { message = "Student ki jankaari nahi mili, bhai" });
+        }
+
         if (_enableCache)
         {
             _cache.SetString($"GetStudent_{enrollment}", JsonSerializer.Serialize(student),
@@ -492,7 +497,7 @@ public class IPUSenpaiController : ControllerBase
                 });
         }
 
-        return student;
+        return Ok(student);
     }
 
     [HttpGet]
