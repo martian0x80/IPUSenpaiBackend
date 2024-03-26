@@ -205,16 +205,16 @@ public class IPUSenpaiController : ControllerBase
 
     [HttpGet]
     [Route("institute/shifts/{instname}")]
-    public Task<List<Response>> GetInstituteShifts(string instname)
+    public async Task<List<Response>> GetInstituteShifts(string instname)
     {
         if (_enableCache)
         {
-            var cachedShifts = _cache.GetString($"GetInstituteShifts_{instname}");
+            var cachedShifts = await _cache.GetStringAsync($"GetInstituteShifts_{instname}");
             if (!string.IsNullOrEmpty(cachedShifts))
             {
                 try
                 {
-                    return Task.FromResult(JsonSerializer.Deserialize<List<Response>>(cachedShifts));
+                    return JsonSerializer.Deserialize<List<Response>>(cachedShifts);
                 }
                 catch (JsonException e)
                 {
@@ -223,10 +223,11 @@ public class IPUSenpaiController : ControllerBase
             }
         }
 
-        var shifts = _api.GetInstituteCodesForShifts(instname);
+        var shifts = await _api.GetInstituteCodesForShifts(instname);
         if (_enableCache)
         {
-            _cache.SetString($"GetInstituteShifts_{instname}", JsonSerializer.Serialize(shifts), CacheOptions);
+            await _cache.SetStringAsync($"GetInstituteShifts_{instname}", JsonSerializer.Serialize(shifts),
+                CacheOptions);
         }
 
         return shifts;
