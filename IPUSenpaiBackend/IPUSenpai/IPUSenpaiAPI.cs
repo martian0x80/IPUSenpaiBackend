@@ -691,8 +691,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         int count = ranklist.Count;
 
-        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).Skip(pageNumber * pageSize)
-            .Take(pageSize).ToList();
+        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).ToList();
         if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiSemester
@@ -729,7 +728,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist, count);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
     }
 
     public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string? instname, string progcode,
@@ -971,8 +970,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         int count = ranklist.Count;
 
-        ranklist = ranklist.OrderByDescending(r => r.Cgpa).ThenByDescending(r => r.Marks).Skip(pageNumber * pageSize)
-            .Take(pageSize).ToList();
+        ranklist = ranklist.OrderByDescending(r => r.Cgpa).ThenByDescending(r => r.Marks).ToList();
 
         if (errorCount >= 30)
         {
@@ -1011,9 +1009,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist, count);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
     }
 
+    // TODO: GetStudent aggregation support for upgradation/transfer students
     public StudentSenpai? GetStudent(string enrolno)
     {
         _logger.LogInformation($"\n [I] Getting student details for {enrolno}\n");
