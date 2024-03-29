@@ -344,7 +344,7 @@ public class IPUSenpaiController : ControllerBase
     [HttpGet]
     [Route(
         "rank/semester/instcode={instcode}&progcode={progcode}&batch={batch}&sem={sem}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
-    public List<RankSenpaiSemester> GetRankSem(string instcode, string? instname, string progcode, string batch,
+    public RankSenpaiSemesterResponse GetRankSem(string instcode, string? instname, string progcode, string batch,
         string sem, int pageNumber = 1, int pageSize = 60)
     {
         // if (instcode == "*" && instname == null)
@@ -361,11 +361,14 @@ public class IPUSenpaiController : ControllerBase
             {
                 try
                 {
-                    var rank = JsonSerializer.Deserialize<Tuple<List<RankSenpaiSemester>, int>>(cachedRank);
+                    var rank =
+                        JsonSerializer
+                            .Deserialize<Tuple<List<RankSenpaiSemester>, int, float, List<float>>>(cachedRank);
                     var rankList = rank.Item1;
                     headers.Append("X-Total-Page-Count", rank.Item2.ToString());
                     _logger.LogInformation("\n[I] Returning cached ranklist by semester");
-                    return rankList;
+                    return new RankSenpaiSemesterResponse
+                        { Ranklist = rankList, AvgGpa = rank.Item3, GpaList = rank.Item4 };
                 }
                 catch (JsonException e)
                 {
@@ -380,7 +383,9 @@ public class IPUSenpaiController : ControllerBase
         {
             _cache.SetString(
                 $"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}",
-                JsonSerializer.Serialize(new Tuple<List<RankSenpaiSemester>, int>(resp.Item1, pageCount),
+                JsonSerializer.Serialize(
+                    new Tuple<List<RankSenpaiSemester>, int, float, List<float>>(resp.Item1, pageCount, resp.Item3,
+                        resp.Item4),
                     SerializerOptions), CacheOptions);
         }
 
@@ -391,14 +396,14 @@ public class IPUSenpaiController : ControllerBase
         }
 
         headers.Append("X-Total-Page-Count", pageCount.ToString());
-        return resp.Item1;
+        return new RankSenpaiSemesterResponse { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item4 };
     }
 
     [HttpGet]
     [Route(
         "rank/instcode={instcode}&progcode={progcode}&batch={batch}&pageNumber={pageNumber}&pageSize={pageSize}/{instname?}")]
     [OutputCache]
-    public List<RankSenpaiOverall> GetRank(string instcode, string? instname, string progcode, string batch,
+    public RankSenpaiOverallResponse GetRank(string instcode, string? instname, string progcode, string batch,
         int pageNumber, int pageSize)
     {
         // if (instcode == "*" && instname == null)
@@ -415,11 +420,13 @@ public class IPUSenpaiController : ControllerBase
             {
                 try
                 {
-                    var rank = JsonSerializer.Deserialize<Tuple<List<RankSenpaiOverall>, int>>(cachedRank);
+                    var rank =
+                        JsonSerializer.Deserialize<Tuple<List<RankSenpaiOverall>, int, float, List<float>>>(cachedRank);
                     var rankList = rank.Item1;
                     headers.Append("X-Total-Page-Count", rank.Item2.ToString());
                     _logger.LogInformation("\n[I] Returning cached ranklist overall");
-                    return rankList;
+                    return new RankSenpaiOverallResponse
+                        { Ranklist = rankList, AvgGpa = rank.Item3, GpaList = rank.Item4 };
                 }
                 catch (JsonException e)
                 {
@@ -434,7 +441,9 @@ public class IPUSenpaiController : ControllerBase
         {
             _cache.SetString(
                 $"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}",
-                JsonSerializer.Serialize(new Tuple<List<RankSenpaiOverall>, int>(resp.Item1, pageCount),
+                JsonSerializer.Serialize(
+                    new Tuple<List<RankSenpaiOverall>, int, float, List<float>>(resp.Item1, pageCount, resp.Item3,
+                        resp.Item4),
                     SerializerOptions), CacheOptions);
         }
 
@@ -445,7 +454,7 @@ public class IPUSenpaiController : ControllerBase
         }
 
         headers.Append("X-Total-Page-Count", pageCount.ToString());
-        return resp.Item1;
+        return new RankSenpaiOverallResponse { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item4 };
     }
 
     [HttpGet]
@@ -463,8 +472,8 @@ public class IPUSenpaiController : ControllerBase
     }
 
     [HttpGet]
-    [Route("student/{enrollment}")]
-    public IActionResult GetStudent(string enrollment)
+    [Route("student/{enrollment}/{transfer?}")]
+    public IActionResult GetStudent(string enrollment, bool transfer = false)
     {
         if (_enableCache)
         {

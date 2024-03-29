@@ -442,7 +442,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return ExamType.Regular;
     }
 
-    public (List<RankSenpaiSemester>, int) GetRanklistBySemester(string instcode, string? instname, string progcode,
+    public (List<RankSenpaiSemester>, int, float, List<float>) GetRanklistBySemester(string instcode, string? instname,
+        string progcode,
         string batch,
         string sem,
         int pageNumber = 0, int pageSize = 10)
@@ -582,7 +583,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     Sgpa = 0,
                     Subject = new List<Dictionary<string, string>>()
                 }
-            }, 0);
+            }, 0, 0, new List<float>());
         }
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
@@ -590,6 +591,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         List<RankSenpaiSemester> ranklist = new();
         object subjectLock = new();
         short errorCount = 0;
+        float AvgGpa = 0f;
         Parallel.ForEach(groupedResult, r =>
         {
             RankSenpaiSemester rank = new()
@@ -685,13 +687,16 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Sgpa = MathSenpai.GetSgpa(totalcreditmarksweighted, totalcredits);
-
+            AvgGpa += rank.Sgpa / groupedResult.Count;
             ranklist.Add(rank);
         });
 
         int count = ranklist.Count;
 
         ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).ToList();
+
+        List<float> GpaList = ranklist.Select(r => r.Sgpa).ToList();
+
         if (errorCount >= 30)
         {
             ranklist.Insert(0, new RankSenpaiSemester
@@ -728,10 +733,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, GpaList);
     }
 
-    public (List<RankSenpaiOverall>, int) GetRanklistOverall(string instcode, string? instname, string progcode,
+    public (List<RankSenpaiOverall>, int, float, List<float>) GetRanklistOverall(string instcode, string? instname,
+        string progcode,
         string batch,
         int pageNumber = 0, int pageSize = 10)
     {
@@ -834,7 +840,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 //                    SgpaAllSem = new List<Dictionary<string, string>>(),
                     MarksPerSemester = new List<Dictionary<string, string>>()
                 }
-            }, 0);
+            }, 0, 0, new List<float>());
         }
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
@@ -842,6 +848,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         List<RankSenpaiOverall> ranklist = new();
         object subjectLock = new();
         short errorCount = 0;
+        float AvgGpa = 0f;
 
         Parallel.ForEach(groupedResult, r =>
         {
@@ -964,13 +971,15 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
-
+            AvgGpa += rank.Cgpa / groupedResult.Count;
             ranklist.Add(rank);
         });
 
         int count = ranklist.Count;
 
         ranklist = ranklist.OrderByDescending(r => r.Cgpa).ThenByDescending(r => r.Marks).ToList();
+
+        List<float> GpaList = ranklist.Select(r => r.Cgpa).ToList();
 
         if (errorCount >= 30)
         {
@@ -1009,7 +1018,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, GpaList);
     }
 
     // TODO: GetStudent aggregation support for upgradation/transfer students
