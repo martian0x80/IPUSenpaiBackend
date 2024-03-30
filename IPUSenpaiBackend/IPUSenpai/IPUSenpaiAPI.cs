@@ -698,8 +698,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         var gpaList = ranklist.Select(r => new GpaListResponse
         {
+            Name = r.Name,
             Enrollment = r.Enrollment,
-            Gpa = r.Sgpa
+            Gpa = r.Sgpa,
+            Percentage = r.Percentage
         }).ToList();
 
         if (errorCount >= 30)
@@ -987,8 +989,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         var gpaList = ranklist.Select(r => new GpaListResponse
         {
+            Name = r.Name,
             Enrollment = r.Enrollment,
-            Gpa = r.Cgpa
+            Gpa = r.Cgpa,
+            Percentage = r.Percentage
         }).ToList();
 
         if (errorCount >= 30)

@@ -16,7 +16,9 @@ public class PartialResponse
 public class GpaListResponse
 {
     public string? Enrollment { get; set; }
+    public string? Name { get; set; }
     public float Gpa { get; set; }
+    public float Percentage { get; set; }
 }
 
 public class RankSenpaiResponse
