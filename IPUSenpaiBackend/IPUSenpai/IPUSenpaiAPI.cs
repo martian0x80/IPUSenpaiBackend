@@ -584,7 +584,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     Sgpa = 0,
                     Subject = new List<Dictionary<string, string>>()
                 }
-            }, 0, 0, new List<GpaListResponse>());
+            }, 0, 0, 0, new List<GpaListResponse>());
         }
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
@@ -851,7 +851,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 //                    SgpaAllSem = new List<Dictionary<string, string>>(),
                     MarksPerSemester = new List<Dictionary<string, string>>()
                 }
-            }, 0, 0, new List<GpaListResponse>());
+            }, 0, 0, 0, new List<GpaListResponse>());
         }
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;

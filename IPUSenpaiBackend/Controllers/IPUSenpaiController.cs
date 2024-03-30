@@ -402,7 +402,8 @@ public class IPUSenpaiController : ControllerBase
         }
 
         headers.Append("X-Total-Page-Count", pageCount.ToString());
-        return new RankSenpaiSemesterResponse { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item5, AvgPercentage = rank.Item4 };
+        return new RankSenpaiSemesterResponse
+            { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item5, AvgPercentage = resp.Item4 };
     }
 
     [HttpGet]
@@ -427,8 +428,9 @@ public class IPUSenpaiController : ControllerBase
                 try
                 {
                     var rank =
-                        JsonSerializer.Deserialize<Tuple<List<RankSenpaiOverall>, int, float, float, List<GpaListResponse>>>(
-                            cachedRank);
+                        JsonSerializer
+                            .Deserialize<Tuple<List<RankSenpaiOverall>, int, float, float, List<GpaListResponse>>>(
+                                cachedRank);
                     var rankList = rank?.Item1;
                     headers.Append("X-Total-Page-Count", rank.Item2.ToString());
                     _logger.LogInformation("\n[I] Returning cached ranklist overall");
@@ -463,7 +465,8 @@ public class IPUSenpaiController : ControllerBase
         }
 
         headers.Append("X-Total-Page-Count", pageCount.ToString());
-        return new RankSenpaiOverallResponse { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item5, AvgPercentage = rank.Item4 };
+        return new RankSenpaiOverallResponse
+            { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item5, AvgPercentage = resp.Item4 };
     }
 
     [HttpGet]
