@@ -25,12 +25,12 @@ public interface IIPUSenpaiAPI
     public Task<InstituteSenpai> GetInstituteByInstcode(short? instcode);
     public Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode);
 
-    public (List<RankSenpaiSemester>, int, float, List<GpaListResponse>) GetRanklistBySemester(string instcode,
+    public (List<RankSenpaiSemester>, int, float, float, List<GpaListResponse>) GetRanklistBySemester(string instcode,
         string? instname,
         string progcode,
         string batch, string sem, int pageNumber, int pageSize);
 
-    public (List<RankSenpaiOverall>, int, float, List<GpaListResponse>) GetRanklistOverall(string instcode,
+    public (List<RankSenpaiOverall>, int, float, float, List<GpaListResponse>) GetRanklistOverall(string instcode,
         string? instname,
         string progcode,
         string batch, int pageNumber, int pageSize);

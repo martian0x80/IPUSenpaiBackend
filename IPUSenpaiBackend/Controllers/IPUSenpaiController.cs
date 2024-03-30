@@ -366,13 +366,13 @@ public class IPUSenpaiController : ControllerBase
                 {
                     var rank =
                         JsonSerializer
-                            .Deserialize<Tuple<List<RankSenpaiSemester>, int, float, List<GpaListResponse>>>(
+                            .Deserialize<Tuple<List<RankSenpaiSemester>, int, float, float, List<GpaListResponse>>>(
                                 cachedRank);
                     var rankList = rank?.Item1;
                     headers.Append("X-Total-Page-Count", rank?.Item2.ToString());
                     _logger.LogInformation("\n[I] Returning cached ranklist by semester");
                     return new RankSenpaiSemesterResponse
-                        { Ranklist = rankList, AvgGpa = rank.Item3, GpaList = rank.Item4 };
+                        { Ranklist = rankList, AvgGpa = rank.Item3, GpaList = rank.Item5, AvgPercentage = rank.Item4 };
                 }
                 catch (JsonException e)
                 {
@@ -388,9 +388,10 @@ public class IPUSenpaiController : ControllerBase
             _cache.SetString(
                 $"GetRanklistBySemester_{instcode}_{progcode}_{batch}_{sem}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}",
                 JsonSerializer.Serialize(
-                    new Tuple<List<RankSenpaiSemester>, int, float, List<GpaListResponse>>(resp.Item1, pageCount,
+                    new Tuple<List<RankSenpaiSemester>, int, float, float, List<GpaListResponse>>(resp.Item1, pageCount,
                         resp.Item3,
-                        resp.Item4),
+                        resp.Item4,
+                        resp.Item5),
                     SerializerOptions), CacheOptions);
         }
 
@@ -401,7 +402,7 @@ public class IPUSenpaiController : ControllerBase
         }
 
         headers.Append("X-Total-Page-Count", pageCount.ToString());
-        return new RankSenpaiSemesterResponse { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item4 };
+        return new RankSenpaiSemesterResponse { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item5, AvgPercentage = rank.Item4 };
     }
 
     [HttpGet]
@@ -426,13 +427,13 @@ public class IPUSenpaiController : ControllerBase
                 try
                 {
                     var rank =
-                        JsonSerializer.Deserialize<Tuple<List<RankSenpaiOverall>, int, float, List<GpaListResponse>>>(
+                        JsonSerializer.Deserialize<Tuple<List<RankSenpaiOverall>, int, float, float, List<GpaListResponse>>>(
                             cachedRank);
                     var rankList = rank?.Item1;
                     headers.Append("X-Total-Page-Count", rank.Item2.ToString());
                     _logger.LogInformation("\n[I] Returning cached ranklist overall");
                     return new RankSenpaiOverallResponse
-                        { Ranklist = rankList, AvgGpa = rank.Item3, GpaList = rank.Item4 };
+                        { Ranklist = rankList, AvgGpa = rank.Item3, GpaList = rank.Item5, AvgPercentage = rank.Item4 };
                 }
                 catch (JsonException e)
                 {
@@ -448,9 +449,10 @@ public class IPUSenpaiController : ControllerBase
             _cache.SetString(
                 $"GetRanklistOverall_{instcode}_{progcode}_{batch}_pageNumber={pageNumber}_pageSize={pageSize}_{instname}",
                 JsonSerializer.Serialize(
-                    new Tuple<List<RankSenpaiOverall>, int, float, List<GpaListResponse>>(resp.Item1, pageCount,
+                    new Tuple<List<RankSenpaiOverall>, int, float, float, List<GpaListResponse>>(resp.Item1, pageCount,
                         resp.Item3,
-                        resp.Item4),
+                        resp.Item4,
+                        resp.Item5),
                     SerializerOptions), CacheOptions);
         }
 
@@ -461,7 +463,7 @@ public class IPUSenpaiController : ControllerBase
         }
 
         headers.Append("X-Total-Page-Count", pageCount.ToString());
-        return new RankSenpaiOverallResponse { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item4 };
+        return new RankSenpaiOverallResponse { Ranklist = resp.Item1, AvgGpa = resp.Item3, GpaList = resp.Item5, AvgPercentage = rank.Item4 };
     }
 
     [HttpGet]

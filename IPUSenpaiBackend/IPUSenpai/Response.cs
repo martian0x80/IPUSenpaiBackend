@@ -24,6 +24,7 @@ public class GpaListResponse
 public class RankSenpaiResponse
 {
     public float AvgGpa { get; set; }
+    public float AvgPercentage { get; set; }
     public List<GpaListResponse>? GpaList { get; set; }
 }
 

@@ -442,7 +442,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return ExamType.Regular;
     }
 
-    public (List<RankSenpaiSemester>, int, float, List<GpaListResponse>) GetRanklistBySemester(string instcode,
+    public (List<RankSenpaiSemester>, int, float, float, List<GpaListResponse>) GetRanklistBySemester(string instcode,
         string? instname,
         string progcode,
         string batch,
@@ -593,6 +593,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         object subjectLock = new();
         short errorCount = 0;
         float AvgGpa = 0f;
+        float AvgPercentage = 0f;
+
         Parallel.ForEach(groupedResult, r =>
         {
             RankSenpaiSemester rank = new()
@@ -689,6 +691,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Sgpa = MathSenpai.GetSgpa(totalcreditmarksweighted, totalcredits);
             AvgGpa += rank.Sgpa / groupedResult.Count;
+            AvgPercentage += rank.Percentage / groupedResult.Count;
             ranklist.Add(rank);
         });
 
@@ -740,10 +743,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, gpaList);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, AvgPercentage, gpaList);
     }
 
-    public (List<RankSenpaiOverall>, int, float, List<GpaListResponse>) GetRanklistOverall(string instcode,
+    public (List<RankSenpaiOverall>, int, float, float, List<GpaListResponse>) GetRanklistOverall(string instcode,
         string? instname,
         string progcode,
         string batch,
@@ -857,6 +860,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         object subjectLock = new();
         short errorCount = 0;
         float AvgGpa = 0f;
+        float AvgPercentage = 0f;
 
         Parallel.ForEach(groupedResult, r =>
         {
@@ -980,6 +984,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             rank.TotalCreditMarksWeighted = totalcreditmarksweighted;
             rank.Cgpa = MathSenpai.GetCgpa(weightedsgpa, totalcredits);
             AvgGpa += rank.Cgpa / groupedResult.Count;
+            AvgPercentage += rank.Percentage / groupedResult.Count;
             ranklist.Add(rank);
         });
 
@@ -1032,7 +1037,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, gpaList);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, AvgPercentage, gpaList);
     }
 
     // TODO: GetStudent aggregation support for upgradation/transfer students
