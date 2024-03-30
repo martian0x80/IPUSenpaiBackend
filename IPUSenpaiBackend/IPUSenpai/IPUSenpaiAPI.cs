@@ -442,7 +442,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return ExamType.Regular;
     }
 
-    public (List<RankSenpaiSemester>, int, float, List<float>) GetRanklistBySemester(string instcode, string? instname,
+    public (List<RankSenpaiSemester>, int, float, List<GpaListResponse>) GetRanklistBySemester(string instcode,
+        string? instname,
         string progcode,
         string batch,
         string sem,
@@ -583,7 +584,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     Sgpa = 0,
                     Subject = new List<Dictionary<string, string>>()
                 }
-            }, 0, 0, new List<float>());
+            }, 0, 0, new List<GpaListResponse>());
         }
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
@@ -695,7 +696,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).ToList();
 
-        List<float> GpaList = ranklist.Select(r => r.Sgpa).ToList();
+        var gpaList = ranklist.Select(r => new GpaListResponse
+        {
+            Enrollment = r.Enrollment,
+            Gpa = r.Sgpa
+        }).ToList();
 
         if (errorCount >= 30)
         {
@@ -733,10 +738,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, GpaList);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, gpaList);
     }
 
-    public (List<RankSenpaiOverall>, int, float, List<float>) GetRanklistOverall(string instcode, string? instname,
+    public (List<RankSenpaiOverall>, int, float, List<GpaListResponse>) GetRanklistOverall(string instcode,
+        string? instname,
         string progcode,
         string batch,
         int pageNumber = 0, int pageSize = 10)
@@ -840,7 +846,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 //                    SgpaAllSem = new List<Dictionary<string, string>>(),
                     MarksPerSemester = new List<Dictionary<string, string>>()
                 }
-            }, 0, 0, new List<float>());
+            }, 0, 0, new List<GpaListResponse>());
         }
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
@@ -979,7 +985,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         ranklist = ranklist.OrderByDescending(r => r.Cgpa).ThenByDescending(r => r.Marks).ToList();
 
-        List<float> GpaList = ranklist.Select(r => r.Cgpa).ToList();
+        var gpaList = ranklist.Select(r => new GpaListResponse
+        {
+            Enrollment = r.Enrollment,
+            Gpa = r.Cgpa
+        }).ToList();
 
         if (errorCount >= 30)
         {
@@ -1018,7 +1028,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             i++;
         }
 
-        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, GpaList);
+        return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, gpaList);
     }
 
     // TODO: GetStudent aggregation support for upgradation/transfer students

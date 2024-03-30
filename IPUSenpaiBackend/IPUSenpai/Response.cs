@@ -13,22 +13,24 @@ public class PartialResponse
     public string? Name { get; set; }
 }
 
-public interface IRankSenpaiResponse
+public class GpaListResponse
 {
-    public float AvgGpa { get; set; }
-    public List<float>? GpaList { get; set; }
+    public string? Enrollment { get; set; }
+    public float Gpa { get; set; }
 }
 
-public class RankSenpaiOverallResponse : IRankSenpaiResponse
+public class RankSenpaiResponse
+{
+    public float AvgGpa { get; set; }
+    public List<GpaListResponse>? GpaList { get; set; }
+}
+
+public class RankSenpaiOverallResponse : RankSenpaiResponse
 {
     public List<RankSenpaiOverall>? Ranklist { get; set; }
-    public float AvgGpa { get; set; }
-    public List<float>? GpaList { get; set; }
 }
 
-public class RankSenpaiSemesterResponse : IRankSenpaiResponse
+public class RankSenpaiSemesterResponse : RankSenpaiResponse
 {
     public List<RankSenpaiSemester>? Ranklist { get; set; }
-    public float AvgGpa { get; set; }
-    public List<float>? GpaList { get; set; }
 }
