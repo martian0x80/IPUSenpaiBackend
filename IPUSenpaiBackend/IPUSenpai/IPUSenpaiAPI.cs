@@ -479,7 +479,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 ORDER BY r.semester::text");
 
         builder.Where("p.prog = @Programme", new { Programme = programme });
-        builder.Where("r.batch = @Batch", new { Batch = batch });
+        builder.Where("r.batch::text = @Batch", new { Batch = batch });
         builder.InnerJoin("student AS s ON r.enrolno = s.enrolno");
         builder.LeftJoin("programme AS p ON s.progcode = p.progcode");
 
