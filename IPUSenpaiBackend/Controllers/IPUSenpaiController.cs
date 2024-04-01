@@ -14,7 +14,7 @@ public class IPUSenpaiController : ControllerBase
     private readonly IIPUSenpaiAPI _api;
     private readonly ILogger _logger;
     private readonly IDistributedCache _cache;
-    private readonly bool _enableCache = true;
+    private readonly bool _enableCache = false;
 
     public readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
     {
@@ -39,18 +39,6 @@ public class IPUSenpaiController : ControllerBase
     {
         return "Pani Puri Senpai API v1.0.0";
     }
-
-    // [HttpGet]
-    // [Route("student/{enrollment}")]
-    // // [EnableRateLimiting("tokenbucket")]
-    // public async Task<StudentSenpai> GetStudent(string enrollment)
-    // {
-    //     if (enrollment.Length < 10)
-    //     {
-    //         return new StudentSenpai();
-    //     }
-    //     return await _api.GetStudentByEnrollment(enrollment);
-    // }
 
     [HttpGet]
     [Route("programmes/{limit?}")]
