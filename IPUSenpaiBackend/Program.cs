@@ -23,8 +23,11 @@ if (builder.Environment.IsDevelopment())
     builder.Services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new() { Title = "IPUSenpaiBackend", Version = "v1" }); });
 }
 
-builder.Services.AddDbContext<IPUSenpaiDBContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("CONNSTR")), ServiceLifetime.Scoped);
+// IDbConnection is not thread-safe, so we need to create a new instance for each request
+// DapperContext is a wrapper around IDbConnection that provides a way to create a new connection
+
+builder.Services.AddSingleton<IDapperContext, DapperContext>();
+builder.Services.AddScoped<IIPUSenpaiAPI, IPUSenpaiAPI>();
 
 builder.Services.AddResponseCompression(options =>
 {

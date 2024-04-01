@@ -26,6 +26,7 @@ public class StudentSenpai
     public string? Institute { get; set; }
     public string? Batch { get; set; }
     public string? Sid { get; set; }
+    public bool Transfer { get; set; }
     public string? InstCode { get; set; }
     public string? ProgCode { get; set; }
     public int Marks { get; set; }
