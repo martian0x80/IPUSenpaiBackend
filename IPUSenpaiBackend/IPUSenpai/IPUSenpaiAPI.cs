@@ -1,8 +1,7 @@
-using System.Collections.Concurrent;
 using System.Globalization;
 using IPUSenpaiBackend.CustomEntities;
 using IPUSenpaiBackend.DBContext;
-using Microsoft.EntityFrameworkCore;
+// using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using Dapper;
 
@@ -498,9 +497,32 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
     }
 
-    public Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsBySID(string? SID)
+    public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsBySID(string? Sid)
     {
-        throw new NotImplementedException();
+        _logger.LogInformation($"Getting subjects for SID: {Sid}");
+        var query =
+            @"SELECT s.subcode AS Subcode, s.paperid AS Paperid, s.papername AS Papername, s.passmarks AS Passmarks, s.maxmarks AS Maxmarks, s.credits AS Credits
+              FROM results AS r
+              INNER JOIN subjects AS s ON r.subcode = s.subcode
+              INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
+              WHERE s0.sid = @Sid AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
+              GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var subjects = (await connection.QueryAsync<SubjectSenpai>(query, new { Sid = Sid }))
+                .ToList();
+            return subjects.Select(g => new Dictionary<string, string>
+            {
+                ["subcode"] = g.Subcode ?? "N/A",
+                ["paperid"] = g.Paperid ?? "N/A",
+                ["papername"] = g.Papername ?? "N/A",
+                ["passmarks"] = g.Passmarks.ToString() ?? "40",
+                ["maxmarks"] = g.Maxmarks.ToString() ?? "100",
+                ["credits"] = g.Credits.ToString() ?? "0"
+            }).GroupBy(g => g["subcode"]).ToDictionary(g => g.Key, g => g.First());
+            //    .ToDictionary(g => g["subcode"], g => g);
+        }
     }
 
     public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsByEnrollment(string? enrollment)
@@ -561,9 +583,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 .ToList();
             return subjects.Select(g => new Dictionary<string, string>
             {
-                ["subcode"] = g.Subcode,
-                ["paperid"] = g.Paperid,
-                ["papername"] = g.Papername,
+                ["subcode"] = g.Subcode ?? "N/A",
+                ["paperid"] = g.Paperid ?? "N/A",
+                ["papername"] = g.Papername ?? "N/A",
                 ["passmarks"] = g.Passmarks.ToString() ?? "40",
                 ["maxmarks"] = g.Maxmarks.ToString() ?? "100",
                 ["credits"] = g.Credits.ToString() ?? "0"
@@ -1246,7 +1268,6 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         public string? Sid { get; set; }
     }
 
-    // TODO: GetStudent aggregation support for upgradation/transfer students
     public StudentSenpai? GetStudent(string enrolno)
     {
         _logger.LogInformation($"\n [I] Getting student details for {enrolno}\n");
@@ -1283,6 +1304,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         r.Exam,
         //         r.Resultdate
         //     }).ToList();
+
+        bool transfer = false;
 
         var query0 =
             @"SELECT s.enrolno AS Enrolno, s.name AS Name, s.instcode AS Instcode, i.instname AS Institute, s.progcode AS Progcode, p.prog AS Programme, p.spec AS Spec, s.batch AS Batch, s.sid AS Sid
@@ -1321,6 +1344,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 query2.Where("s.sid = @Sid", new { Sid = student.Sid });
                 results = (connection.Query<Result>(selector.RawSql, selector.Parameters))
                     .ToList();
+                transfer = true;
+                _logger.LogInformation($"[I] Student {enrolno} ({student.Sid}) has transferred from another institute");
             }
             else
             {
@@ -1366,7 +1391,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             };
         }
 
-        var subject = GetSubjectsByEnrollment(enrolno).Result;
+        var subject = transfer ? GetSubjectsBySID(student.Sid).Result : GetSubjectsByEnrollment(enrolno).Result;
 
         List<RankSenpaiSemester> ranklistSem = new();
         object subjectLock = new();
@@ -1377,12 +1402,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             Enrollment = enrolno,
             Name = student.Name,
             Institute = student.Institute,
-            InstCode = student.Instcode.ToString(),
+            InstCode = student.Instcode,
             Programme = student.Programme,
             Specialization = student.Spec,
             ProgCode = student.Progcode,
-            Batch = student.Batch.ToString(),
+            Batch = student.Batch,
             Sid = student.Sid,
+            Transfer = transfer,
             Marks = 0,
             CreditMarks = 0,
             TotalCreditMarks = 0,
@@ -1465,7 +1491,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     try
                     {
                         ((List<Dictionary<string, string>>)studentSenpai.Subject.First(p =>
-                                p["semester"].ToString() == s.Semester.ToString())["subjects"])
+                                p["semester"].ToString() == s.Semester)["subjects"])
                             .Add(new Dictionary<string, string>
                             {
                                 ["subcode"] = sub.Subcode,
