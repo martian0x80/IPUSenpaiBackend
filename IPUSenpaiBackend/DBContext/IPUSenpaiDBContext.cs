@@ -28,9 +28,8 @@ public partial class IPUSenpaiDBContext : DbContext
 
     public virtual DbSet<Subject> Subjects { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.LogTo(Console.WriteLine);
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+        optionsBuilder.LogTo(Console.WriteLine);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,7 +71,8 @@ public partial class IPUSenpaiDBContext : DbContext
                 .HasNoKey()
                 .ToTable("programmes_institutes");
 
-            entity.HasIndex(e => new { e.Instcode, e.Progcode }, "programmes_institutes_instcode_progcode_key").IsUnique();
+            entity.HasIndex(e => new { e.Instcode, e.Progcode }, "programmes_institutes_instcode_progcode_key")
+                .IsUnique();
 
             entity.Property(e => e.Instcode).HasColumnName("instcode");
             entity.Property(e => e.Progcode)
@@ -167,7 +167,12 @@ public partial class IPUSenpaiDBContext : DbContext
 
             entity.ToTable("subjects");
 
-            entity.HasIndex(e => new { e.Subcode, e.Paperid, e.Papername, e.Credits, e.Minor, e.Major, e.Mode, e.Kind, e.Maxmarks, e.Passmarks, e.Schemeid, e.Type, e.Exam }, "unique_subjects_constraint").IsUnique();
+            entity.HasIndex(
+                e => new
+                {
+                    e.Subcode, e.Paperid, e.Papername, e.Credits, e.Minor, e.Major, e.Mode, e.Kind, e.Maxmarks,
+                    e.Passmarks, e.Schemeid, e.Type, e.Exam
+                }, "unique_subjects_constraint").IsUnique();
 
             entity.Property(e => e.Subid).HasColumnName("subid");
             entity.Property(e => e.Credits).HasColumnName("credits");
