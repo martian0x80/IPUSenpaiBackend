@@ -4,6 +4,7 @@ using IPUSenpaiBackend.CustomEntities;
 using IPUSenpaiBackend.DBContext;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using Dapper;
 
 namespace IPUSenpaiBackend.IPUSenpai;
 
@@ -29,60 +30,65 @@ public static class EnumExtensions
     }
 }
 
+// ReSharper disable once InconsistentNaming
 public class IPUSenpaiAPI : IIPUSenpaiAPI
 {
-    private readonly IPUSenpaiDBContext _context;
+    private readonly IDapperContext _context;
     private readonly ILogger _logger;
 
-    public IPUSenpaiAPI(IPUSenpaiDBContext context, ILogger<IPUSenpaiAPI> logger)
+    public IPUSenpaiAPI(IDapperContext context, ILogger<IPUSenpaiAPI> logger)
     {
         // Dependency Injections go brrr
         _logger = logger;
         _context = context;
-    }
+        _logger.LogInformation("IPUSenpaiAPI created");
 
-    // public async Task<StudentSenpai> GetStudentByEnrollment(string? enrollment)
-    // {
-    //     StudentSenpai student = await _context.Students
-    //         .Include(s => s.InstcodeNavigation)
-    //         .Include(s => s.ProgcodeNavigation)
-    //         .Where(s => s.Enrolno == enrollment)
-    //         .Select(s => new StudentSenpai
-    //         {
-    //             Enrolno = s.Enrolno,
-    //             Name = s.Name,
-    //             Instcode = s.Instcode,
-    //             Institute = s.InstcodeNavigation.Instname,
-    //             Progcode = s.Progcode,
-    //             Programme = s.ProgcodeNavigation.Progname,
-    //             Batch = s.Batch,
-    //             Sid = s.Sid,
-    //         }).FirstOrDefaultAsync();
-    //
-    //     if (student == null)
-    //     {
-    //         student = new StudentSenpai();
-    //     }
-    //
-    //     return student;
-    // }
+        // // Test Dapper
+        // using (var connection = _context.CreateConnection())
+        // {
+        //     var result = connection.Query("SELECT * FROM institute");
+        //     foreach (var row in result)
+        //     {
+        //         Console.WriteLine(row);
+        //     }
+        // }
+    }
 
     public async Task<List<Response>> GetInstitutes(short limit = 100)
     {
-        /*
-         * select instname, count(*) from institute inner join student on student.instcode=institute.instcode group by institute.instname having count(*) > 100 order by count(*) desc;
-         */
-        var institutes = await _context.Students
-            .Include(s => s.InstcodeNavigation)
-            .GroupBy(s => s.InstcodeNavigation.Instname)
-            .Where(s => s.Count() > 100)
-            .OrderByDescending(s => s.Count())
-            .Select(s => new Response
-            {
-                Name = s.Key,
-                Value = s.FirstOrDefault().InstcodeNavigation.Instcode.ToString()
-            })
-            .ToListAsync();
+        var query =
+            @"SELECT i.instname AS Name, (
+            SELECT i1.instcode
+            FROM student AS s0
+            LEFT JOIN institute AS i1 ON s0.instcode = i1.instcode
+            WHERE i.instname = i1.instname
+            LIMIT 1)::text AS Value
+        FROM student AS s
+        LEFT JOIN institute AS i ON s.instcode = i.instcode
+        GROUP BY i.instname
+            HAVING count(*)::int > 100
+        ORDER BY count(*)::int DESC;";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var institutes = await connection.QueryAsync<Response>(
+                query,
+                new { Limit = limit });
+            return institutes.ToList();
+        }
+
+
+        // var institutes = await _context.Students
+        //     .Include(s => s.InstcodeNavigation)
+        //     .GroupBy(s => s.InstcodeNavigation.Instname)
+        //     .Where(s => s.Count() > 100)
+        //     .OrderByDescending(s => s.Count())
+        //     .Select(s => new Response
+        //     {
+        //         Name = s.Key,
+        //         Value = s.FirstOrDefault().InstcodeNavigation.Instcode.ToString()
+        //     })
+        //     .ToListAsync();
         // Total 107 unique institutes
         // var institutes = (from s in _context.Institutes
         //     join i in _context.Students on s.Instcode equals i.Instcode
@@ -90,22 +96,37 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //     // where g.Count() > 500
         //     orderby g.Count() descending
         //     select g.Key).Take(limit);
-        return institutes;
     }
 
     public async Task<List<PartialResponse>> GetInstitutesByProgramme(string programme, short limit = 100)
     {
-        var programmes = await _context.ProgrammesInstitutes
-            .Include(pi => pi.InstcodeNavigation)
-            .Where(pi => pi.ProgcodeNavigation.Prog == programme)
-            .GroupBy(pi => pi.InstcodeNavigation.Instname)
-            .OrderBy(pi => pi.Key)
-            .Select(pi => new PartialResponse
-            {
-                Name = pi.Key
-            })
-            // .OrderBy(instname => instname.Name)
-            .ToListAsync();
+        // var programmes = await _context.ProgrammesInstitutes
+        //     .Include(pi => pi.InstcodeNavigation)
+        //     .Where(pi => pi.ProgcodeNavigation.Prog == programme)
+        //     .GroupBy(pi => pi.InstcodeNavigation.Instname)
+        //     .OrderBy(pi => pi.Key)
+        //     .Select(pi => new PartialResponse
+        //     {
+        //         Name = pi.Key
+        //     })
+        //     // .OrderBy(instname => instname.Name)
+        //     .ToListAsync();
+        var query =
+            @"SELECT i.instname AS Name
+              FROM programmes_institutes AS p
+              LEFT JOIN programme AS p0 ON p.progcode = p0.progcode
+              LEFT JOIN institute AS i ON p.instcode = i.instcode
+              WHERE p0.prog=@Programme
+              GROUP BY i.instname
+              ORDER BY i.instname";
+        List<PartialResponse> programmes;
+
+        using (var connection = _context.CreateConnection())
+        {
+            programmes =
+                (await connection.QueryAsync<PartialResponse>(query, new { Programme = programme, Limit = limit }))
+                .ToList();
+        }
 
         if (programmes.Count == 0)
         {
@@ -127,16 +148,31 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<List<PartialResponse>> GetProgrammes(short limit = 79)
     {
-        var programmes = await _context.Programmes
-            .GroupBy(p => p.Prog)
-            .OrderBy(p => p.Key)
-            .Select(p => new PartialResponse
-            {
-                Name = p.Key
-            })
-            // .OrderBy(p => p.Name)
-            .Take(limit)
-            .ToListAsync();
+        // var programmes = await _context.Programmes
+        //     .GroupBy(p => p.Prog)
+        //     .OrderBy(p => p.Key)
+        //     .Select(p => new PartialResponse
+        //     {
+        //         Name = p.Key
+        //     })
+        //     // .OrderBy(p => p.Name)
+        //     .Take(limit)
+        //     .ToListAsync();
+
+        var query =
+            @"SELECT p.prog AS Name
+              FROM programme AS p
+              GROUP BY p.prog
+              ORDER BY p.prog
+              LIMIT @Limit";
+
+        List<PartialResponse> programmes;
+        using (var connection = _context.CreateConnection())
+        {
+            programmes = (await connection.QueryAsync<PartialResponse>(query, new { Limit = limit }))
+                .ToList();
+        }
+
         if (programmes.Count == 0)
         {
             programmes.Add(new PartialResponse
@@ -150,21 +186,31 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<List<Response>> GetSpecializations(short limit = 30)
     {
-        var specializations = await _context.Programmes
-            .OrderBy(pi => pi.Spec)
-            .Select(pi => new Response
-            {
-                Name = pi.Spec,
-                Value = pi.Progcode
-            })
-            .Distinct()
-            .ToListAsync();
+        // var specializations = await _context.Programmes
+        //     .OrderBy(pi => pi.Spec)
+        //     .Select(pi => new Response
+        //     {
+        //         Name = pi.Spec,
+        //         Value = pi.Progcode
+        //     })
+        //     .Distinct()
+        //     .ToListAsync();
+
+        var query =
+            @"SELECT DISTINCT p.spec AS Name, p.progcode AS Value
+                FROM programme AS p";
+        List<Response> specializations;
+
+        using (var connection = _context.CreateConnection())
+        {
+            specializations = (await connection.QueryAsync<Response>(query)).ToList();
+        }
 
         if (specializations.Count == 0)
         {
             return new List<Response>
             {
-                new Response
+                new()
                 {
                     Name = "No specializations found",
                     Value = "No specializations found"
@@ -179,47 +225,60 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         string? prog = "BACHELOR OF TECHNOLOGY",
         string? instname = "University School of Information & Communication Technology")
     {
-        // var specializations = await _context.Programmes
-        // .Where(p => p.Prog == prog)
-        // .Select(p => new
-        // {
-        //     p.Spec,
-        //     p.Progcode
-        // })
-        // .Take(limit)
-        // .ToDictionaryAsync(p => p.Spec, p => p.Progcode);
+        var builder = new SqlBuilder();
+        var selector = builder.AddTemplate(
+            @"SELECT DISTINCT p0.spec AS Name, p.progcode AS Value
+                FROM programmes_institutes AS p
+                /**leftjoin**/
+                /**where**/
+                /**orderby**/");
 
-        var specializationsQuery = _context.ProgrammesInstitutes
-            .Where(pi => pi.ProgcodeNavigation.Prog == prog);
-
+        builder.LeftJoin("programme AS p0 ON p.progcode = p0.progcode");
+        builder.Where("p0.prog = @Programme", new { Programme = prog });
         if (instname != "ALL INSTITUTES")
         {
-            specializationsQuery = specializationsQuery.Where(pi => pi.InstcodeNavigation.Instname == instname);
+            builder.LeftJoin("institute AS i ON p.instcode = i.instcode");
+            builder.Where("i.instname = @Instname", new { Instname = instname });
         }
 
-        var specializations = await specializationsQuery
-            .OrderBy(pi => pi.ProgcodeNavigation.Spec)
-            .Select(pi => new Response
-            {
-                Name = pi.ProgcodeNavigation.Spec,
-                Value = pi.Progcode
-            })
-            .Distinct()
-            .ToListAsync();
+        builder.OrderBy("p0.spec");
 
-        if (specializations.Count == 0)
+        using (var connection = _context.CreateConnection())
         {
-            return new List<Response>
+            var specializations = (await connection.QueryAsync<Response>(selector.RawSql, selector.Parameters))
+                .ToList();
+            if (specializations.Count == 0)
             {
-                new Response
+                return new List<Response>
                 {
-                    Name = "No specializations found",
-                    Value = "No specializations found"
-                }
-            };
+                    new()
+                    {
+                        Name = "No specializations found",
+                        Value = "No specializations found"
+                    }
+                };
+            }
+
+            return specializations;
         }
 
-        return specializations;
+        // var specializationsQuery = _context.ProgrammesInstitutes
+        //     .Where(pi => pi.ProgcodeNavigation.Prog == prog);
+        //
+        // if (instname != "ALL INSTITUTES")
+        // {     
+        //     specializationsQuery = specializationsQuery.Where(pi => pi.InstcodeNavigation.Instname == instname);
+        // }
+        //
+        // var specializations = await specializationsQuery
+        //     .OrderBy(pi => pi.ProgcodeNavigation.Spec)
+        //     .Select(pi => new Response
+        //     {
+        //         Name = pi.ProgcodeNavigation.Spec,
+        //         Value = pi.Progcode
+        //     })
+        //     .Distinct()
+        //     .ToListAsync();
     }
 
     public async Task<List<Response>> GetInstituteCodesForShifts(string instname)
@@ -236,11 +295,24 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             };
         }
 
-        var institutes = await _context.Institutes
-            .Where(i => i.Instname == instname)
-            .Select(i => i.Instcode)
-            .OrderBy(s => s)
-            .ToListAsync();
+        // var institutes = await _context.Institutes
+        //     .Where(i => i.Instname == instname)
+        //     .Select(i => i.Instcode)
+        //     .OrderBy(s => s)
+        //     .ToListAsync();
+
+        var query =
+            @"SELECT i.instcode
+              FROM institute AS i
+              WHERE i.instname = @Instname
+              ORDER BY i.instcode";
+        List<short> institutes;
+
+        using (var connection = _context.CreateConnection())
+        {
+            institutes = (await connection.QueryAsync<short>(query, new { Instname = instname }))
+                .ToList();
+        }
 
         List<Response> shifts = new();
 
@@ -286,74 +358,149 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<List<short?>> GetBatchesByPrognameAndInstname(string programme, string institute)
     {
-        var batchesQuery = _context.Students
-            .Where(s => s.ProgcodeNavigation.Prog == programme);
+        // var batchesQuery = _context.Students
+        //     .Where(s => s.ProgcodeNavigation.Prog == programme);
+        // if (institute != "ALL INSTITUTES")
+        // {
+        //     batchesQuery = batchesQuery.Where(s => s.InstcodeNavigation.Instname == institute);
+        // }
+        // var batches = await batchesQuery
+        //     .GroupBy(s => s.Batch)
+        //     .OrderByDescending(s => s.Key)
+        //     .Select(s => s.Key)
+        //     .ToListAsync();
+
+        var builder = new SqlBuilder();
+        var selector = builder.AddTemplate(
+            @"SELECT s.batch
+                  FROM student AS s
+                    /**leftjoin**/
+                    /**where**/
+                  GROUP BY s.batch
+                  ORDER BY s.batch DESC");
+        builder.LeftJoin("programme AS p ON s.progcode = p.progcode");
+        builder.Where("p.prog = @Programme", new { Programme = programme });
+
         if (institute != "ALL INSTITUTES")
         {
-            batchesQuery = batchesQuery.Where(s => s.InstcodeNavigation.Instname == institute);
+            builder.LeftJoin("institute AS i ON s.instcode = i.instcode");
+            builder.Where("i.instname = @Instname", new { Instname = institute });
         }
 
-        var batches = await batchesQuery
-            .GroupBy(s => s.Batch)
-            .OrderByDescending(s => s.Key)
-            .Select(s => s.Key)
-            .ToListAsync();
-        return batches;
+        using (var connection = _context.CreateConnection())
+        {
+            var batches = (await connection.QueryAsync<short?>(selector.RawSql, selector.Parameters))
+                .ToList();
+            return batches;
+        }
     }
 
     public async Task<InstituteSenpai> GetInstituteByInstcode(short? instcode)
     {
-        var institute = await _context.Institutes
-            .Where(i => i.Instcode == instcode)
-            .Select(i => new InstituteSenpai
-            {
-                Instcode = i.Instcode,
-                Instname = i.Instname,
-            })
-            .Take(1)
-            .FirstOrDefaultAsync();
-        return institute ?? new InstituteSenpai();
+        // var institute = await _context.Institutes
+        //     .Where(i => i.Instcode == instcode)
+        //     .Select(i => new InstituteSenpai
+        //     {
+        //         Instcode = i.Instcode,
+        //         Instname = i.Instname,
+        //     })
+        //     .Take(1)
+        //     .FirstOrDefaultAsync();
+
+        var query =
+            @"SELECT i.instcode AS Instcode, i.instname AS Instname
+              FROM institute AS i
+              WHERE i.instcode = @Instcode
+              LIMIT 1";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var institute =
+                await connection.QueryFirstOrDefaultAsync<InstituteSenpai>(query, new { Instcode = instcode });
+            return institute ?? new InstituteSenpai();
+        }
     }
 
     public async Task<ProgrammeSenpai> GetProgrammeByProgcode(string? progcode)
     {
-        var programme = await _context.Programmes
-            .Where(p => p.Progcode == progcode)
-            .Select(p => new ProgrammeSenpai
-            {
-                Progcode = p.Progcode,
-                Progname = p.Progname,
-                Prog = p.Prog,
-                Spec = p.Spec
-            })
-            .Take(1)
-            .FirstOrDefaultAsync();
-        return programme ?? new ProgrammeSenpai();
+        // var programme = await _context.Programmes
+        //     .Where(p => p.Progcode == progcode)
+        //     .Select(p => new ProgrammeSenpai
+        //     {
+        //         Progcode = p.Progcode,
+        //         Progname = p.Progname,
+        //         Prog = p.Prog,
+        //         Spec = p.Spec
+        //     })
+        //     .Take(1)
+        //     .FirstOrDefaultAsync();
+
+        var query =
+            @"SELECT p.progcode AS Progcode, p.progname AS Progname, p.prog AS Prog, p.spec AS Spec
+              FROM programme AS p
+              WHERE p.progcode = @Progcode
+              LIMIT 1";
+        using (var connection = _context.CreateConnection())
+        {
+            var programme =
+                await connection.QueryFirstOrDefaultAsync<ProgrammeSenpai>(query, new { Progcode = progcode });
+            return programme ?? new ProgrammeSenpai();
+        }
     }
 
     public async Task<List<PartialResponse>> GetSemestersByProgrammeInstnameBatch(string programme, string institute,
         string batch)
     {
-        _context.ChangeTracker.LazyLoadingEnabled = false;
-        var semestersQuery = _context.Results.AsNoTracking()
-            // .Include(r => r.EnrolnoNavigation)
-            .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme &&
-                        r.Batch.ToString() == batch);
+        //     var semestersQuery = Results.AsNoTracking()
+        //         // .Include(r => r.EnrolnoNavigation)
+        //         .Where(r => r.EnrolnoNavigation.ProgcodeNavigation.Prog == programme &&
+        //                     r.Batch.ToString() == batch);
+        //     if (institute != "ALL INSTITUTES")
+        //     {
+        //         semestersQuery = semestersQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == institute);
+        //     }
+        //
+        //     var semesters = await semestersQuery
+        //         .GroupBy(r => r.Semester)
+        //         .Select(r => new PartialResponse
+        //         {
+        //             Name = r.Key.ToString()
+        //         })
+        //         .OrderBy(r => r.Name)
+        //         .ToListAsync();
+
+        var builder = new SqlBuilder();
+        var selector = builder.AddTemplate(
+            @"SELECT r.semester::text AS Name
+                FROM results AS r
+                /**innerjoin**/
+                /**leftjoin**/
+                /**where**/
+                GROUP BY r.semester
+                ORDER BY r.semester::text");
+
+        builder.Where("p.prog = @Programme", new { Programme = programme });
+        builder.Where("r.batch = @Batch", new { Batch = batch });
+        builder.InnerJoin("student AS s ON r.enrolno = s.enrolno");
+        builder.LeftJoin("programme AS p ON s.progcode = p.progcode");
+
         if (institute != "ALL INSTITUTES")
         {
-            semestersQuery = semestersQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == institute);
+            builder.LeftJoin("institute AS i ON s.instcode = i.instcode");
+            builder.Where("i.instname = @Instname", new { Instname = institute });
         }
 
-        var semesters = await semestersQuery
-            .GroupBy(r => r.Semester)
-            .Select(r => new PartialResponse
-            {
-                Name = r.Key.ToString()
-            })
-            .OrderBy(r => r.Name)
-            .ToListAsync();
+        using (var connection = _context.CreateConnection())
+        {
+            var semesters = (await connection.QueryAsync<PartialResponse>(selector.RawSql, selector.Parameters))
+                .ToList();
+            return semesters;
+        }
+    }
 
-        return semesters;
+    public Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsBySID(string? SID)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsByEnrollment(string? enrollment)
@@ -378,36 +525,51 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         g.Key.Maxmarks,
         //         g.Key.Credits
         //     }).ToListAsync();
-        _context.ChangeTracker.LazyLoadingEnabled = false;
-        var subjects = await (from r in _context.Results.AsNoTracking()
-            where r.Enrolno == enrollment
-            join s in _context.Subjects on r.Subcode equals s.Subcode
-            join st in _context.Students on r.Enrolno equals st.Enrolno
-            // where s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid
-            where (s.Paperid.Contains(st.Progcode) ||
-                   r.Schemeid == s.Schemeid) // || (!s.Paperid.Contains(st.Progcode) && r.Schemeid != s.Schemeid)
-            group new { r, s, st } by new { s.Subcode, s.Paperid, s.Papername, s.Passmarks, s.Maxmarks, s.Credits }
-            into g
-            select new
-            {
-                g.Key.Subcode,
-                g.Key.Paperid,
-                g.Key.Papername,
-                g.Key.Passmarks,
-                g.Key.Maxmarks,
-                g.Key.Credits,
-            }).ToListAsync();
 
-        return subjects.Select(g => new Dictionary<string, string>
+        // This one akchuly works!!
+
+        // var subjects = await (from r in _context.Results.AsNoTracking()
+        //     where r.Enrolno == enrollment
+        //     join s in _context.Subjects on r.Subcode equals s.Subcode
+        //     join st in _context.Students on r.Enrolno equals st.Enrolno
+        //     // where s.Paperid.Contains(st.Progcode) || r.Schemeid == s.Schemeid
+        //     where (s.Paperid.Contains(st.Progcode) ||
+        //            r.Schemeid == s.Schemeid) // || (!s.Paperid.Contains(st.Progcode) && r.Schemeid != s.Schemeid)
+        //     group new { r, s, st } by new { s.Subcode, s.Paperid, s.Papername, s.Passmarks, s.Maxmarks, s.Credits }
+        //     into g
+        //     select new
+        //     {
+        //         g.Key.Subcode,
+        //         g.Key.Paperid,
+        //         g.Key.Papername,
+        //         g.Key.Passmarks,
+        //         g.Key.Maxmarks,
+        //         g.Key.Credits,
+        //     }).ToListAsync();
+
+        var query =
+            @"SELECT s.subcode AS Subcode, s.paperid AS Paperid, s.papername AS Papername, s.passmarks AS Passmarks, s.maxmarks AS Maxmarks, s.credits AS Credits
+              FROM results AS r
+              INNER JOIN subjects AS s ON r.subcode = s.subcode
+              INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
+              WHERE r.enrolno = @Enrollment AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
+              GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
+
+        using (var connection = _context.CreateConnection())
         {
-            ["subcode"] = g.Subcode,
-            ["paperid"] = g.Paperid,
-            ["papername"] = g.Papername,
-            ["passmarks"] = g.Passmarks.ToString() ?? "40",
-            ["maxmarks"] = g.Maxmarks.ToString() ?? "100",
-            ["credits"] = g.Credits.ToString() ?? "0"
-        }).GroupBy(g => g["subcode"]).ToDictionary(g => g.Key, g => g.First());
-        //    .ToDictionary(g => g["subcode"], g => g);
+            var subjects = (await connection.QueryAsync<SubjectSenpai>(query, new { Enrollment = enrollment }))
+                .ToList();
+            return subjects.Select(g => new Dictionary<string, string>
+            {
+                ["subcode"] = g.Subcode,
+                ["paperid"] = g.Paperid,
+                ["papername"] = g.Papername,
+                ["passmarks"] = g.Passmarks.ToString() ?? "40",
+                ["maxmarks"] = g.Maxmarks.ToString() ?? "100",
+                ["credits"] = g.Credits.ToString() ?? "0"
+            }).GroupBy(g => g["subcode"]).ToDictionary(g => g.Key, g => g.First());
+            //    .ToDictionary(g => g["subcode"], g => g);
+        }
     }
 
     private enum ExamType
@@ -441,6 +603,20 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         return ExamType.Regular;
     }
+
+    private class Result
+    {
+        public string Enrolno { get; set; }
+        public string Name { get; set; }
+        public string Subcode { get; set; }
+        public int? Internal { get; set; }
+        public int? External { get; set; }
+        public int? Total { get; set; }
+        public string Semester { get; set; }
+        public string Exam { get; set; }
+        public string Resultdate { get; set; }
+    }
+
 
     public (List<RankSenpaiSemester>, int, float, float, List<GpaListResponse>) GetRanklistBySemester(string instcode,
         string? instname,
@@ -487,15 +663,28 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //     }).ToList();
         */
 
-        // The last working version
-
-        // var results = (from r in _context.Results.AsNoTracking()
-        //     where r.EnrolnoNavigation.Instcode.ToString() == instcode
-        //           && r.EnrolnoNavigation.Progcode == progcode
-        //           && r.EnrolnoNavigation.Batch.ToString() == batch
-        //           && r.Semester.ToString() == sem
-        //     orderby r.Enrolno
-        //     select new
+        // var resultsQuery = _context.Results.AsNoTracking()
+        //     // .Include(r => r.EnrolnoNavigation)
+        //     .Where(r => r.EnrolnoNavigation.Progcode == progcode
+        //                 && r.EnrolnoNavigation.Batch.ToString() == batch
+        //                 && r.Semester.ToString() == sem);
+        //
+        // if (instcode == "*" && !string.IsNullOrEmpty(instname) && instname != "ALL INSTITUTES")
+        // {
+        //     resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
+        // }
+        // // else if (instcode == "*" && string.IsNullOrEmpty(instname))
+        // // {
+        // //     resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
+        // // }
+        // else if (instcode != "*")
+        // {
+        //     resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.Instcode.ToString() == instcode);
+        // }
+        //
+        // var results = resultsQuery
+        //     .OrderBy(r => r.Enrolno)
+        //     .Select(r => new
         //     {
         //         r.Enrolno,
         //         r.EnrolnoNavigation.Name,
@@ -508,41 +697,37 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         r.Resultdate
         //     }).ToList();
 
-        _context.ChangeTracker.LazyLoadingEnabled = false;
-        var resultsQuery = _context.Results.AsNoTracking()
-            // .Include(r => r.EnrolnoNavigation)
-            .Where(r => r.EnrolnoNavigation.Progcode == progcode
-                        && r.EnrolnoNavigation.Batch.ToString() == batch
-                        && r.Semester.ToString() == sem);
+        var builder = new SqlBuilder();
+        var selector = builder.AddTemplate(
+            @"SELECT r.enrolno AS Enrolno, s.name AS Name, r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
+            FROM results AS r
+            /**innerjoin**/
+            /**leftjoin**/
+            /**where**/
+            ORDER BY r.enrolno");
+
+        builder.Where("s.progcode = @Progcode", new { Progcode = progcode });
+        builder.Where("s.batch::text = @Batch", new { Batch = batch });
+        builder.Where("r.semester::text = @Sem", new { Sem = sem });
+        builder.InnerJoin("student AS s ON r.enrolno = s.enrolno");
 
         if (instcode == "*" && !string.IsNullOrEmpty(instname) && instname != "ALL INSTITUTES")
         {
-            resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
+            builder.LeftJoin("institute AS i ON s.instcode = i.instcode");
+            builder.Where("i.instname = @Instname", new { Instname = instname });
         }
-        // else if (instcode == "*" && string.IsNullOrEmpty(instname))
-        // {
-        //     resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
-        // }
         else if (instcode != "*")
         {
-            resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.Instcode.ToString() == instcode);
+            builder.Where("s.instcode::text = @Instcode", new { Instcode = instcode });
         }
 
-        var results = resultsQuery
-            .OrderBy(r => r.Enrolno)
-            .Select(r => new
-            {
-                r.Enrolno,
-                r.EnrolnoNavigation.Name,
-                r.Subcode,
-                r.Internal,
-                r.External,
-                r.Total,
-                r.Semester,
-                r.Exam,
-                r.Resultdate
-            }).ToList();
+        List<Result> results;
 
+        using (var connection = _context.CreateConnection())
+        {
+            results = (connection.Query<Result>(selector.RawSql, selector.Parameters))
+                .ToList();
+        }
 
         // Group the data locally
         var groupedResult = results.GroupBy(g => g.Enrolno)
@@ -755,15 +940,23 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         Console.Out.WriteLine(
             $"Instcode: {instcode}, Progcode: {progcode}, Batch: {batch}, Sem: Overall, Instname: {instname}");
 
-        // Last working version
-
-        // _context.ChangeTracker.LazyLoadingEnabled = false;
-        // var results = (from r in _context.Results.AsNoTracking()
-        //     where r.EnrolnoNavigation.Instcode.ToString() == instcode
-        //           && r.EnrolnoNavigation.Progcode == progcode
-        //           && r.EnrolnoNavigation.Batch.ToString() == batch
-        //     orderby r.Enrolno
-        //     select new
+        // var resultsQuery = _context.Results.AsNoTracking()
+        //     // .Include(r => r.EnrolnoNavigation)
+        //     .Where(r => r.EnrolnoNavigation.Progcode == progcode
+        //                 && r.EnrolnoNavigation.Batch.ToString() == batch);
+        //
+        // if (instcode == "*" && !string.IsNullOrEmpty(instname) && instname != "ALL INSTITUTES")
+        // {
+        //     resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
+        // }
+        // else if (instcode != "*")
+        // {
+        //     resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.Instcode.ToString() == instcode);
+        // }
+        //
+        // var results = resultsQuery
+        //     .OrderBy(r => r.Enrolno)
+        //     .Select(r => new
         //     {
         //         r.Enrolno,
         //         r.EnrolnoNavigation.Name,
@@ -776,36 +969,36 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //         r.Resultdate
         //     }).ToList();
 
-        _context.ChangeTracker.LazyLoadingEnabled = false;
-        var resultsQuery = _context.Results.AsNoTracking()
-            // .Include(r => r.EnrolnoNavigation)
-            .Where(r => r.EnrolnoNavigation.Progcode == progcode
-                        && r.EnrolnoNavigation.Batch.ToString() == batch);
+        var builder = new SqlBuilder();
+        var selector = builder.AddTemplate(
+            @"SELECT r.enrolno AS Enrolno, s.name AS Name, r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
+            FROM results AS r
+            /**innerjoin**/
+            /**leftjoin**/
+            /**where**/
+            ORDER BY r.enrolno");
+
+        builder.Where("s.progcode = @Progcode", new { Progcode = progcode });
+        builder.Where("s.batch::text = @Batch", new { Batch = batch });
+        builder.InnerJoin("student AS s ON r.enrolno = s.enrolno");
 
         if (instcode == "*" && !string.IsNullOrEmpty(instname) && instname != "ALL INSTITUTES")
         {
-            resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.InstcodeNavigation.Instname == instname);
+            builder.LeftJoin("institute AS i ON s.instcode = i.instcode");
+            builder.Where("i.instname = @Instname", new { Instname = instname });
         }
         else if (instcode != "*")
         {
-            resultsQuery = resultsQuery.Where(r => r.EnrolnoNavigation.Instcode.ToString() == instcode);
+            builder.Where("s.instcode::text = @Instcode", new { Instcode = instcode });
         }
 
-        var results = resultsQuery
-            .OrderBy(r => r.Enrolno)
-            .Select(r => new
-            {
-                r.Enrolno,
-                r.EnrolnoNavigation.Name,
-                r.Subcode,
-                r.Internal,
-                r.External,
-                r.Total,
-                r.Semester,
-                r.Exam,
-                r.Resultdate
-            }).ToList();
+        List<Result> results;
 
+        using (var connection = _context.CreateConnection())
+        {
+            results = (connection.Query<Result>(selector.RawSql, selector.Parameters))
+                .ToList();
+        }
 
         // Group the data locally
         var groupedResult = results.GroupBy(g => g.Enrolno)
@@ -1040,44 +1233,102 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return (ranklist.Skip(pageNumber * pageSize).Take(pageSize).ToList(), count, AvgGpa, AvgPercentage, gpaList);
     }
 
+    private class Student
+    {
+        public string? Enrolno { get; set; }
+        public string? Name { get; set; }
+        public string? Instcode { get; set; }
+        public string? Institute { get; set; }
+        public string? Progcode { get; set; }
+        public string? Programme { get; set; }
+        public string? Spec { get; set; }
+        public string? Batch { get; set; }
+        public string? Sid { get; set; }
+    }
+
     // TODO: GetStudent aggregation support for upgradation/transfer students
     public StudentSenpai? GetStudent(string enrolno)
     {
         _logger.LogInformation($"\n [I] Getting student details for {enrolno}\n");
 
-        var student = _context.Students
-            .Where(s => s.Enrolno == enrolno)
-            .Select(s => new
-            {
-                Enrolno = s.Enrolno,
-                Name = s.Name,
-                Instcode = s.Instcode,
-                Institute = s.InstcodeNavigation.Instname,
-                Progcode = s.Progcode,
-                Programme = s.ProgcodeNavigation.Prog,
-                Spec = s.ProgcodeNavigation.Spec,
-                Batch = s.Batch,
-                Sid = s.Sid,
-            }).FirstOrDefault();
+        // var student = _context.Students
+        //     .Where(s => s.Enrolno == enrolno)
+        //     .Select(s => new
+        //     {
+        //         Enrolno = s.Enrolno,
+        //         Name = s.Name,
+        //         Instcode = s.Instcode,
+        //         Institute = s.InstcodeNavigation.Instname,
+        //         Progcode = s.Progcode,
+        //         Programme = s.ProgcodeNavigation.Prog,
+        //         Spec = s.ProgcodeNavigation.Spec,
+        //         Batch = s.Batch,
+        //         Sid = s.Sid,
+        //     }).FirstOrDefault();
+        //
+        // if (student == null)
+        // {
+        //     return null;
+        // }
+        //
+        // var results = (from r in _context.Results.AsNoTracking()
+        //     where r.EnrolnoNavigation.Enrolno == enrolno
+        //     select new
+        //     {
+        //         r.Subcode,
+        //         r.Internal,
+        //         r.External,
+        //         r.Total,
+        //         r.Semester,
+        //         r.Exam,
+        //         r.Resultdate
+        //     }).ToList();
 
-        if (student == null)
+        var query0 =
+            @"SELECT s.enrolno AS Enrolno, s.name AS Name, s.instcode AS Instcode, i.instname AS Institute, s.progcode AS Progcode, p.prog AS Programme, p.spec AS Spec, s.batch AS Batch, s.sid AS Sid
+                FROM student AS s
+                INNER JOIN institute AS i ON s.instcode = i.instcode
+                INNER JOIN programme AS p ON s.progcode = p.progcode
+                WHERE s.enrolno = @Enrollment";
+
+        var query1 =
+            "SELECT count(*) FROM student WHERE sid = @Sid";
+
+        var query2 = new SqlBuilder();
+        var selector = query2.AddTemplate(
+            @"SELECT r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
+              FROM results AS r
+                /**innerjoin**/
+                /**where**/
+              ORDER BY r.enrolno");
+
+        List<Result> results;
+        Student? student;
+        using (var connection = _context.CreateConnection())
         {
-            return null;
-        }
-
-        _context.ChangeTracker.LazyLoadingEnabled = false;
-        var results = (from r in _context.Results.AsNoTracking()
-            where r.EnrolnoNavigation.Enrolno == enrolno
-            select new
+            student = connection.Query<Student>(query0, new { Enrollment = enrolno })
+                .FirstOrDefault();
+            if (student == null)
             {
-                r.Subcode,
-                r.Internal,
-                r.External,
-                r.Total,
-                r.Semester,
-                r.Exam,
-                r.Resultdate
-            }).ToList();
+                return null;
+            }
+
+            var sidCount = connection.Query<int>(query1, new { Sid = student.Sid })
+                .FirstOrDefault();
+            if (sidCount > 1)
+            {
+                query2.InnerJoin("student AS s ON r.enrolno = s.enrolno");
+                query2.Where("s.sid = @Sid", new { Sid = student.Sid });
+                results = (connection.Query<Result>(selector.RawSql, selector.Parameters))
+                    .ToList();
+            }
+            else
+            {
+                query2.Where("r.enrolno = @Enrolno", new { Enrolno = enrolno });
+                results = (connection.Query<Result>(selector.RawSql, selector.Parameters))
+                    .ToList();
+            }
+        }
 
         // Group the data locally
         var groupedResult = results.GroupBy(s => s.Semester)
@@ -1393,31 +1644,49 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
     {
         if (filter != null)
         {
-            var students = _context.Students.Where(s => s.Name.Contains(filter.Name));
+            // var students = _context.Students.Where(s => s.Name.Contains(filter.Name));
+            var builder = new SqlBuilder();
+            var selector = builder.AddTemplate(
+                @"SELECT s.enrolno AS Enrollment, s.name AS Name, i.instname AS Institute, p.prog AS Programme, s.batch AS Batch
+                    FROM student AS s
+                    INNER JOIN institute AS i ON s.instcode = i.instcode
+                    INNER JOIN programme AS p ON s.progcode = p.progcode
+                    /**where**/
+                    ORDER BY s.enrolno");
+            builder.Where("s.name ILIKE @Name", new { Name = $"%{filter.Name}%" });
 
             if (!string.IsNullOrEmpty(filter.Institute))
             {
-                students = students.Where(s => s.InstcodeNavigation.Instname == filter.Institute);
+                // students = students.Where(s => s.InstcodeNavigation.Instname == filter.Institute);
+                builder.Where("i.instname = @Institute", new { Institute = filter.Institute });
             }
 
             if (!string.IsNullOrEmpty(filter.Programme))
             {
-                students = students.Where(s => s.ProgcodeNavigation.Prog == filter.Programme);
+                // students = students.Where(s => s.ProgcodeNavigation.Prog == filter.Programme);
+                builder.Where("p.prog = @Programme", new { Programme = filter.Programme });
             }
 
             if (!string.IsNullOrEmpty(filter.Batch))
             {
-                students = students.Where(s => s.Batch.ToString() == filter.Batch);
+                // students = students.Where(s => s.Batch.ToString() == filter.Batch);
+                builder.Where("s.batch::text = @Batch", new { Batch = filter.Batch });
             }
 
-            return await students.Select(s => new StudentSearchSenpai
+            // await students.Select(s => new StudentSearchSenpai
+            // {
+            //     Enrollment = s.Enrolno,
+            //     Name = s.Name,
+            //     Institute = s.InstcodeNavigation.Instname,
+            //     Programme = s.ProgcodeNavigation.Prog,
+            //     Batch = s.Batch.ToString(),
+            // }).ToListAsync();
+
+            using (var connection = _context.CreateConnection())
             {
-                Enrollment = s.Enrolno,
-                Name = s.Name,
-                Institute = s.InstcodeNavigation.Instname,
-                Programme = s.ProgcodeNavigation.Prog,
-                Batch = s.Batch.ToString(),
-            }).ToListAsync();
+                return (await connection.QueryAsync<StudentSearchSenpai>(selector.RawSql, selector.Parameters))
+                    .ToList();
+            }
         }
 
         return new List<StudentSearchSenpai>();
