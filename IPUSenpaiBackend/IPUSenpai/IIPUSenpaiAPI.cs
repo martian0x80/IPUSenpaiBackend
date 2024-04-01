@@ -4,12 +4,13 @@ namespace IPUSenpaiBackend.IPUSenpai;
 
 public interface IIPUSenpaiAPI
 {
-    // public Task<StudentSenpai> GetStudentByEnrollment(string? enrollment);
-    public Task<List<Response>> GetInstitutes(short limit = 79);
+    public Task<List<Response>> GetInstitutes(short limit);
     public Task<List<PartialResponse>> GetInstitutesByProgramme(string programme, short limit = 79);
     public Task<List<PartialResponse>> GetProgrammes(short limit = 30);
+
     public Task<List<Response>> GetSpecializations(short limit = 30);
 
+    //
     public Task<List<Response>> GetSpecializationsByProgrammeAndInstname(short limit = 30,
         string? programme = "BACHELOR OF TECHNOLOGY",
         string? instname = "University School of Information & Communication Technology");
