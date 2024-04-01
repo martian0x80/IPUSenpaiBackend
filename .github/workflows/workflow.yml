@@ -1,7 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Workflow to build and deploy the backend to Azure Web App - ipuresultssenpai
+name: Workflow to build and deploy the backend to Azure Web App - IPUSenpai
 
 on:
   push:
@@ -40,6 +37,8 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write #This is required for requesting the JWT
 
     steps:
       - name: Add mask
@@ -51,6 +50,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: .net-app
+      
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_026B77CC9208426E9184C23881CA6D96 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_08E288E775C94524AF0DF5BD1E2E1E63 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F0520BE3A96C4960AD183973E996B624 }}
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -58,5 +64,5 @@ jobs:
         with:
           app-name: ${{ secrets.APP_NAME }}
           slot-name: ${{ secrets.SLOT_NAME }}
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_A677D6B1B2144B89845E39507AC8549A }}
           package: .
+          
