@@ -378,12 +378,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                   GROUP BY s.batch
                   ORDER BY s.batch DESC");
         builder.LeftJoin("programme AS p ON s.progcode = p.progcode");
-        builder.Where("p.prog = @Programme", new { Programme = programme });
+        builder.Where("p.prog = CAST(@Programme AS TEXT)", new { Programme = programme });
 
         if (institute != "ALL INSTITUTES")
         {
             builder.LeftJoin("institute AS i ON s.instcode = i.instcode");
-            builder.Where("i.instname = @Instname", new { Instname = institute });
+            builder.Where("i.instname = CAST(@Instname AS TEXT)", new { Instname = institute });
         }
 
         using (var connection = _context.CreateConnection())
@@ -409,7 +409,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         var query =
             @"SELECT i.instcode AS Instcode, i.instname AS Instname
               FROM institute AS i
-              WHERE i.instcode = @Instcode
+              WHERE i.instcode = CAST(@Instcode AS SMALLINT)
               LIMIT 1";
 
         using (var connection = _context.CreateConnection())
@@ -437,7 +437,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         var query =
             @"SELECT p.progcode AS Progcode, p.progname AS Progname, p.prog AS Prog, p.spec AS Spec
               FROM programme AS p
-              WHERE p.progcode = @Progcode
+              WHERE p.progcode = CAST(@Progcode AS VARCHAR(8))
               LIMIT 1";
         using (var connection = _context.CreateConnection())
         {
@@ -478,15 +478,15 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 GROUP BY r.semester
                 ORDER BY r.semester::text");
 
-        builder.Where("p.prog = @Programme", new { Programme = programme });
-        builder.Where("r.batch::text = @Batch", new { Batch = batch });
+        builder.Where("p.prog = CAST(@Programme AS TEXT)", new { Programme = programme });
+        builder.Where("r.batch = CAST(@Batch AS SMALLINT)", new { Batch = batch });
         builder.InnerJoin("student AS s ON r.enrolno = s.enrolno");
         builder.LeftJoin("programme AS p ON s.progcode = p.progcode");
 
         if (institute != "ALL INSTITUTES")
         {
             builder.LeftJoin("institute AS i ON s.instcode = i.instcode");
-            builder.Where("i.instname = @Instname", new { Instname = institute });
+            builder.Where("i.instname = CAST(@Instname AS TEXT)", new { Instname = institute });
         }
 
         using (var connection = _context.CreateConnection())
@@ -505,7 +505,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               FROM results AS r
               INNER JOIN subjects AS s ON r.subcode = s.subcode
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE s0.sid = @Sid AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
+              WHERE s0.sid = CAST(@Sid AS VARCHAR(20)) AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
 
         using (var connection = _context.CreateConnection())
@@ -574,7 +574,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               FROM results AS r
               INNER JOIN subjects AS s ON r.subcode = s.subcode
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE r.enrolno = @Enrollment AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
+              WHERE r.enrolno = CAST(@Enrollment AS VARCHAR(12)) AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
 
         using (var connection = _context.CreateConnection())
@@ -728,19 +728,19 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             /**where**/
             ORDER BY r.enrolno");
 
-        builder.Where("s.progcode = @Progcode", new { Progcode = progcode });
-        builder.Where("s.batch::text = @Batch", new { Batch = batch });
-        builder.Where("r.semester::text = @Sem", new { Sem = sem });
+        builder.Where("s.progcode = CAST(@Progcode AS VARCHAR(12))", new { Progcode = progcode });
+        builder.Where("s.batch = CAST(@Batch AS SMALLINT)", new { Batch = batch });
+        builder.Where("r.semester = CAST(@Sem AS SMALLINT)", new { Sem = sem });
         builder.InnerJoin("student AS s ON r.enrolno = s.enrolno");
 
         if (instcode == "*" && !string.IsNullOrEmpty(instname) && instname != "ALL INSTITUTES")
         {
             builder.LeftJoin("institute AS i ON s.instcode = i.instcode");
-            builder.Where("i.instname = @Instname", new { Instname = instname });
+            builder.Where("i.instname = CAST(@Instname AS TEXT)", new { Instname = instname });
         }
         else if (instcode != "*")
         {
-            builder.Where("s.instcode::text = @Instcode", new { Instcode = instcode });
+            builder.Where("s.instcode = CAST(@Instcode AS SMALLINT)", new { Instcode = instcode });
         }
 
         List<Result> results;
@@ -1000,18 +1000,18 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             /**where**/
             ORDER BY r.enrolno");
 
-        builder.Where("s.progcode = @Progcode", new { Progcode = progcode });
-        builder.Where("s.batch::text = @Batch", new { Batch = batch });
+        builder.Where("s.progcode = CAST(@Progcode AS VARCHAR(12))", new { Progcode = progcode });
+        builder.Where("s.batch = CAST(@Batch AS SMALLINT)", new { Batch = batch });
         builder.InnerJoin("student AS s ON r.enrolno = s.enrolno");
 
         if (instcode == "*" && !string.IsNullOrEmpty(instname) && instname != "ALL INSTITUTES")
         {
             builder.LeftJoin("institute AS i ON s.instcode = i.instcode");
-            builder.Where("i.instname = @Instname", new { Instname = instname });
+            builder.Where("i.instname = CAST(@Instname AS TEXT)", new { Instname = instname });
         }
         else if (instcode != "*")
         {
-            builder.Where("s.instcode::text = @Instcode", new { Instcode = instcode });
+            builder.Where("s.instcode = CAST(@Instcode AS SMALLINT)", new { Instcode = instcode });
         }
 
         List<Result> results;
@@ -1168,8 +1168,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     ["totalcredits"] = semestercredits.ToString(),
                     ["totalcreditmarksweighted"] = semestercreditmarksweighted.ToString(),
                     ["sgpa"] = sgpa.ToString(CultureInfo.InvariantCulture),
-                    ["percentage"] = ((float)semestermarks / semestertotal * 100).ToString(),
-                    ["creditspercentage"] = ((float)semestercreditmarks / semestercreditmarksmax * 100).ToString()
+                    ["percentage"] =
+                        ((float)semestermarks / semestertotal * 100).ToString(CultureInfo.InvariantCulture),
+                    ["creditspercentage"] =
+                        ((float)semestercreditmarks / semestercreditmarksmax * 100).ToString(CultureInfo
+                            .InvariantCulture)
                 });
             });
 
@@ -1312,10 +1315,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 FROM student AS s
                 INNER JOIN institute AS i ON s.instcode = i.instcode
                 INNER JOIN programme AS p ON s.progcode = p.progcode
-                WHERE s.enrolno = @Enrollment";
+                WHERE s.enrolno = CAST(@Enrollment AS VARCHAR(12))";
 
         var query1 =
-            "SELECT count(*) FROM student WHERE sid = @Sid";
+            "SELECT count(*) FROM student WHERE sid = CAST(@Sid AS VARCHAR(20))";
 
         var query2 = new SqlBuilder();
         var selector = query2.AddTemplate(
@@ -1341,7 +1344,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             if (sidCount > 1)
             {
                 query2.InnerJoin("student AS s ON r.enrolno = s.enrolno");
-                query2.Where("s.sid = @Sid", new { Sid = student.Sid });
+                query2.Where("s.sid = CAST(@Sid AS VARCHAR(20))", new { Sid = student.Sid });
                 results = (connection.Query<Result>(selector.RawSql, selector.Parameters))
                     .ToList();
                 transfer = true;
@@ -1349,7 +1352,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             }
             else
             {
-                query2.Where("r.enrolno = @Enrolno", new { Enrolno = enrolno });
+                query2.Where("r.enrolno = CAST(@Enrolno AS VARCHAR(12))", new { Enrolno = enrolno });
                 results = (connection.Query<Result>(selector.RawSql, selector.Parameters))
                     .ToList();
             }
@@ -1679,24 +1682,24 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     INNER JOIN programme AS p ON s.progcode = p.progcode
                     /**where**/
                     ORDER BY s.enrolno");
-            builder.Where("s.name ILIKE @Name", new { Name = $"%{filter.Name}%" });
+            builder.Where("s.name ILIKE CAST(@Name AS TEXT)", new { Name = $"%{filter.Name}%" });
 
             if (!string.IsNullOrEmpty(filter.Institute))
             {
                 // students = students.Where(s => s.InstcodeNavigation.Instname == filter.Institute);
-                builder.Where("i.instname = @Institute", new { Institute = filter.Institute });
+                builder.Where("i.instname = CAST(@Institute AS TEXT)", new { Institute = filter.Institute });
             }
 
             if (!string.IsNullOrEmpty(filter.Programme))
             {
                 // students = students.Where(s => s.ProgcodeNavigation.Prog == filter.Programme);
-                builder.Where("p.prog = @Programme", new { Programme = filter.Programme });
+                builder.Where("p.prog = CAST(@Programme AS TEXT)", new { Programme = filter.Programme });
             }
 
             if (!string.IsNullOrEmpty(filter.Batch))
             {
                 // students = students.Where(s => s.Batch.ToString() == filter.Batch);
-                builder.Where("s.batch::text = @Batch", new { Batch = filter.Batch });
+                builder.Where("s.batch = CAST(@Batch AS SMALLINT)", new { Batch = filter.Batch });
             }
 
             // await students.Select(s => new StudentSearchSenpai
