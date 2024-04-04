@@ -1,12 +1,13 @@
 using System.Data;
 using Npgsql;
+using StackExchange.Profiling;
 
 namespace IPUSenpaiBackend.DBContext;
 
 public class DapperContext : IDapperContext
 {
     private readonly string? _connectionString;
-    private readonly ILogger<DapperContext> _logger;
+    private readonly ILogger _logger;
     private static int _count = 0;
 
     public DapperContext(IConfiguration configuration, ILogger<DapperContext> logger)
@@ -19,6 +20,8 @@ public class DapperContext : IDapperContext
     public IDbConnection CreateConnection()
     {
         _logger.LogInformation($"Connection ID: {++_count} created");
-        return new NpgsqlConnection(_connectionString);
+        // Leaving this here, ProfiledDbConnection is very minimal overhead anyway
+        return new StackExchange.Profiling.Data.ProfiledDbConnection(new NpgsqlConnection(_connectionString),
+            MiniProfiler.Current);
     }
 }

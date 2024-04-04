@@ -23,6 +23,15 @@ if (builder.Environment.IsDevelopment())
     builder.Services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new() { Title = "IPUSenpaiBackend", Version = "v1" }); });
 }
 
+builder.Services.AddMiniProfiler(options =>
+{
+    options.RouteBasePath = "/profiler";
+    options.SqlFormatter = new StackExchange.Profiling.SqlFormatters.InlineFormatter();
+    options.TrackConnectionOpenClose = true;
+    options.ColorScheme = StackExchange.Profiling.ColorScheme.Dark;
+    options.PopupDecimalPlaces = 3;
+});
+
 // IDbConnection is not thread-safe, so we need to create a new instance for each request
 // DapperContext is a wrapper around IDbConnection that provides a way to create a new connection
 
@@ -117,6 +126,8 @@ app.UseResponseCompression();
 app.UseOutputCache();
 
 app.UseRequestTimeouts();
+
+app.UseMiniProfiler();
 
 if (app.Environment.IsDevelopment())
 {
