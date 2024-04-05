@@ -776,7 +776,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         {
             return (new List<RankSenpaiSemester>
             {
-                new RankSenpaiSemester
+                new()
                 {
                     Enrollment = "No results found",
                     Name = "No results found",
@@ -817,7 +817,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             int totalcreditmarksweighted = 0;
             int totalcreditmarks = 0;
 
-            Parallel.ForEach(r.Subs, s =>
+            foreach(var s in r.Subs)
             {
                 if (!subject.ContainsKey(s.Subcode))
                 {
@@ -870,7 +870,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     // If key is not found retry
                     Console.Out.WriteLine($"Key not found: {s.Subcode}\n {r.Enrolno} {r.Name}\n Schemeid: {s.Exam}");
                 }
-            });
+            }
 
             rank.Marks = marks;
             rank.Total = total;
@@ -904,7 +904,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         int count = ranklist.Count;
 
-        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).ToList();
+        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).ThenByDescending(r => r.CreditMarks).ToList();
 
         var gpaList = ranklist.Select(r => new GpaListResponse
         {
@@ -1104,7 +1104,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 int semestercredits = 0;
                 int semestercreditmarksweighted = 0;
                 int semestercreditmarksmax = 0;
-                Parallel.ForEach(s.Subs, sub =>
+                foreach(var sub in s.Subs)
                 {
                     if (!subject.ContainsKey(sub.Subcode))
                     {
@@ -1143,7 +1143,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     {
                         Console.Out.WriteLine($"Key not found: {sub.Subcode}\n {r.Enrolno} {r.Name}");
                     }
-                });
+                }
 
                 marks += semestermarks;
                 total += semestertotal;
