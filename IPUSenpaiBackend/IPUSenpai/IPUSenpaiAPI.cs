@@ -129,9 +129,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         using (var connection = _context.CreateConnection())
         {
-            programmes =
-                (await connection.QueryAsync<PartialResponse>(query, new { Programme = programme, Limit = limit }))
-                .ToList();
+            programmes.AddRange(
+                await connection.QueryAsync<PartialResponse>(query, new { Programme = programme, Limit = limit }));
         }
 
         if (programmes.Count == 1)
