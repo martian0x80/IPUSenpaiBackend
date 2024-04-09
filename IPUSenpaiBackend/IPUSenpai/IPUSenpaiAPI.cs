@@ -113,13 +113,19 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         // student ?
         var query =
             @"SELECT i.instname AS Name
-              FROM programmes_institutes AS p
+              FROM student AS p
               LEFT JOIN programme AS p0 ON p.progcode = p0.progcode
               LEFT JOIN institute AS i ON p.instcode = i.instcode
               WHERE p0.prog=@Programme
               GROUP BY i.instname
               ORDER BY i.instname";
-        List<PartialResponse> programmes;
+        List<PartialResponse> programmes =
+        [
+            new()
+            {
+                Name = "ALL INSTITUTES"
+            },
+        ];
 
         using (var connection = _context.CreateConnection())
         {
@@ -128,19 +134,15 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 .ToList();
         }
 
-        if (programmes.Count == 0)
+        if (programmes.Count == 1)
         {
-            programmes.Add(new PartialResponse
+            programmes = new()
             {
-                Name = "No institutes found",
-            });
-        }
-        else
-        {
-            programmes.Insert(0, new PartialResponse
-            {
-                Name = "ALL INSTITUTES"
-            });
+                new PartialResponse
+                {
+                    Name = "No institutes found",
+                }
+            };
         }
 
         return programmes;
