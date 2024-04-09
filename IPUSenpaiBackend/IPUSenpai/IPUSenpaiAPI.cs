@@ -497,7 +497,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
     }
 
-    public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsBySID(string? Sid)
+    public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsBySID(string? Sid,
+        bool failover = false)
     {
         _logger.LogInformation($"Getting subjects for SID: {Sid}");
         var query =
@@ -507,6 +508,17 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
               WHERE s0.sid = CAST(@Sid AS VARCHAR(20)) AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
+
+        if (failover)
+        {
+            query =
+                @"SELECT s.subcode AS Subcode, s.paperid AS Paperid, s.papername AS Papername, s.passmarks AS Passmarks, s.maxmarks AS Maxmarks, s.credits AS Credits
+              FROM results AS r
+              INNER JOIN subjects AS s ON r.subcode = s.subcode
+              INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
+              WHERE r.enrolno = CAST(@Enrollment AS VARCHAR(12)) AND (r.subcode = s.subcode)
+              GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
+        }
 
         using (var connection = _context.CreateConnection())
         {
@@ -525,7 +537,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
     }
 
-    public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsByEnrollment(string? enrollment)
+    public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsByEnrollment(string? enrollment,
+        bool failover = false)
     {
         _logger.LogInformation($"Getting subjects for {enrollment}");
         /* To get subject details
@@ -577,10 +590,22 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               WHERE r.enrolno = CAST(@Enrollment AS VARCHAR(12)) AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
 
+        if (failover)
+        {
+            query =
+                @"SELECT s.subcode AS Subcode, s.paperid AS Paperid, s.papername AS Papername, s.passmarks AS Passmarks, s.maxmarks AS Maxmarks, s.credits AS Credits
+              FROM results AS r
+              INNER JOIN subjects AS s ON r.subcode = s.subcode
+              INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
+              WHERE r.enrolno = CAST(@Enrollment AS VARCHAR(12)) AND (r.subcode = s.subcode)
+              GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
+        }
+
         using (var connection = _context.CreateConnection())
         {
             var subjects = (await connection.QueryAsync<SubjectSenpai>(query, new { Enrollment = enrollment }))
                 .ToList();
+
             return subjects.Select(g => new Dictionary<string, string>
             {
                 ["subcode"] = g.Subcode ?? "N/A",
@@ -817,7 +842,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             int totalcreditmarksweighted = 0;
             int totalcreditmarks = 0;
 
-            foreach(var s in r.Subs)
+            foreach (var s in r.Subs)
             {
                 if (!subject.ContainsKey(s.Subcode))
                 {
@@ -904,7 +929,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         int count = ranklist.Count;
 
-        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks).ThenByDescending(r => r.CreditMarks).ToList();
+        ranklist = ranklist.OrderByDescending(r => r.Sgpa).ThenByDescending(r => r.Marks)
+            .ThenByDescending(r => r.CreditMarks).ToList();
 
         var gpaList = ranklist.Select(r => new GpaListResponse
         {
@@ -1104,7 +1130,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 int semestercredits = 0;
                 int semestercreditmarksweighted = 0;
                 int semestercreditmarksmax = 0;
-                foreach(var sub in s.Subs)
+                foreach (var sub in s.Subs)
                 {
                     if (!subject.ContainsKey(sub.Subcode))
                     {
@@ -1395,6 +1421,15 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
 
         var subject = transfer ? GetSubjectsBySID(student.Sid).Result : GetSubjectsByEnrollment(enrolno).Result;
+
+        if (subject.Count == 0)
+        {
+            _logger.LogInformation($"[I] No subjects found for {enrolno} {student.Name}");
+            _logger.LogInformation($"[I] Failover query initiated for {enrolno} {student.Name}");
+            subject = transfer
+                ? GetSubjectsBySID(student.Sid, true).Result
+                : GetSubjectsByEnrollment(enrolno, true).Result;
+        }
 
         List<RankSenpaiSemester> ranklistSem = new();
         object subjectLock = new();
