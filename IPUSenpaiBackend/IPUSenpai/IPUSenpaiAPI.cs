@@ -110,6 +110,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //     })
         //     // .OrderBy(instname => instname.Name)
         //     .ToListAsync();
+        // student ?
         var query =
             @"SELECT i.instname AS Name
               FROM programmes_institutes AS p
@@ -286,7 +287,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         {
             return new List<Response>
             {
-                new Response
+                new()
                 {
                     Name = "All",
                     Value = "*"
@@ -821,6 +822,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
 
+        if (subject.Count == 0)
+        {
+            subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno, true).Result;
+        }
+
         List<RankSenpaiSemester> ranklist = new();
         object subjectLock = new();
         short errorCount = 0;
@@ -853,6 +859,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                             subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno).Result)
                                 .ToLookup(k => k.Key, v => v.Value)
                                 .ToDictionary(k => k.Key, v => v.First());
+                            if (subject.Count == 0)
+                            {
+                                subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno, true).Result)
+                                    .ToLookup(k => k.Key, v => v.Value)
+                                    .ToDictionary(k => k.Key, v => v.First());
+                            }
+
                             // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
                             errorCount++;
                         }
@@ -1096,6 +1109,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
 
         var subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno).Result;
+        if (subject.Count == 0)
+        {
+            subject = GetSubjectsByEnrollment(groupedResult[0].Enrolno, true).Result;
+        }
 
         List<RankSenpaiOverall> ranklist = new();
         object subjectLock = new();
@@ -1141,6 +1158,13 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                                 subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno).Result)
                                     .ToLookup(k => k.Key, v => v.Value)
                                     .ToDictionary(k => k.Key, v => v.First());
+                                if (subject.Count == 0)
+                                {
+                                    subject = subject.Concat(GetSubjectsByEnrollment(r.Enrolno, true).Result)
+                                        .ToLookup(k => k.Key, v => v.Value)
+                                        .ToDictionary(k => k.Key, v => v.First());
+                                }
+
                                 // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
                                 errorCount++;
                             }
