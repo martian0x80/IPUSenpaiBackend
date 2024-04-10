@@ -1,7 +1,7 @@
 # IPUSenpaiBackend
 This is the backend for the IPUSenpai project. It is a RESTful API that provides endpoints for the frontend to interact with the database.
 
-The frontend for this project can be found [here](https://ipu-senpai.vercel.app/).
+The frontend for this project can be found [here](https://ipusenpai.in/).
 
 ## Brief Overview
 - The backend is built using ASP.NET Core and Entity Framework Core. It is hosted on Azure and uses Azure Postgresql Database for data storage.
