@@ -1,0 +1,62 @@
+name: Workflow to build Docker image and deploy to server
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.x'
+          include-prerelease: true
+
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
+
+      - name: Publish to output directory
+        run: dotnet publish -c Release -o ./output
+
+      - name: Build Docker image
+        run: docker build -t martian0x80/ipusenpai:latest .
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+
+      - name: Push Docker image to registry
+        run: docker push martian0x80/ipusenpai:latest
+
+  deploy-to-server:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: SSH
+        uses: nyancatda/ssh-action@v3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.REMOTE_KEY }}
+          port: ${{ secrets.REMOTE_PORT }}
+
+      - name: Pull latest Docker image
+        run: ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} docker pull maritan0x80/ipusenpai:latest
+
+      - name: (Optional) Build Docker image on VPS (if not pushed)
+        run: ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} docker build -t ipusenpai:latest .
+
+      - name: Run the container
+        run: ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} docker run -d -p 80:80 ipusenpai:latest
+
+
