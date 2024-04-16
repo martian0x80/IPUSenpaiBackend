@@ -50,9 +50,12 @@ jobs:
           key: ${{ secrets.REMOTE_KEY }}
           port: ${{ secrets.REMOTE_PORT }}
           script: |
-            neofetch
+            echo "Pruning images..."
+            docker image prune
             echo "Pulling Docker Image..."
             docker pull martian0x80/ipusenpai:latest
+            echo "Killing running containers..."
+            docker rm $(docker stop $(docker ps -a -q --filter ancestor=martian0x80/ipusenpai --format="{{.ID}}"))
             echo "Running Docker Container..."
             docker run -d -p 80:8080 martian0x80/ipusenpai:latest
 
