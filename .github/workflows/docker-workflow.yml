@@ -49,11 +49,11 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.REMOTE_KEY }}
           port: ${{ secrets.REMOTE_PORT }}
-
-      - name: Pull latest Docker image
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} docker pull martian0x80/ipusenpai:latest
-
-      - name: Run the container
-        run: ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} docker run -d -p 80:8080 martian0x80/ipusenpai:latest
+          script: |
+            neofetch
+            echo "Pulling Docker Image..."
+            docker pull martian0x80/ipusenpai:latest
+            echo "Running Docker Container..."
+            docker run -d -p 80:8080 martian0x80/ipusenpai:latest
 
 
