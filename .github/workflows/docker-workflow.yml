@@ -54,6 +54,6 @@ jobs:
         run: ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} docker pull martian0x80/ipusenpai:latest
 
       - name: Run the container
-        run: ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} docker run -d -p 80:80 martian0x80/ipusenpai:latest
+        run: ssh ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} docker run -d -p 80:8080 martian0x80/ipusenpai:latest
 
 
