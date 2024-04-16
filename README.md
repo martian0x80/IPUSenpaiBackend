@@ -1,4 +1,6 @@
 # IPUSenpaiBackend
+[![IPUSenpai Backend - Azure WA](https://github.com/martian0x80/IPUSenpaiBackend/actions/workflows/workflow.yml/badge.svg)](https://github.com/martian0x80/IPUSenpaiBackend/actions/workflows/workflow.yml)
+[![IPUSenpai Backend - Backup VPS](https://github.com/martian0x80/IPUSenpaiBackend/actions/workflows/docker-workflow.yml/badge.svg)](https://github.com/martian0x80/IPUSenpaiBackend/actions/workflows/docker-workflow.yml)
 This is the backend for the IPUSenpai project. It is a RESTful API that provides endpoints for the IPUSenpai frontend.
 
 The frontend for this project can be found [here](https://devel.ipusenpai.in/).
