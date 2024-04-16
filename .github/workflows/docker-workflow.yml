@@ -50,13 +50,13 @@ jobs:
           key: ${{ secrets.REMOTE_KEY }}
           port: ${{ secrets.REMOTE_PORT }}
           script: |
-            echo "Pruning images..."
+            echo "Pruning images..." | cowsay | lolcat
             docker image prune
-            echo "Pulling Docker Image..."
+            echo "Pulling Docker Image..." | cowsay | lolcat
             docker pull martian0x80/ipusenpai:latest
-            echo "Killing running containers..."
-            docker rm $(docker stop $(docker ps -a -q --filter ancestor=martian0x80/ipusenpai --format="{{.ID}}"))
-            echo "Running Docker Container..."
-            docker run -d -p 80:8080 martian0x80/ipusenpai:latest
-
-
+            echo "Killing em all..." | cowsay | lolcat
+            #docker rm $(docker stop $(docker ps -a -q --filter ancestor=martian0x80/ipusenpai --format="{{.ID}}"))
+            docker system prune -f
+            echo "Running Docker Container..." | cowsay | lolcat
+            docker run -d -p 80:8080 --env-file ~/.env martian0x80/ipusenpai:latest
+            echo "Pipeline completed." | cowsay | lolcat
