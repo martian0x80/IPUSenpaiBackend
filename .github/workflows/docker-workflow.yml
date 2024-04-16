@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: SSH
-        uses: nyancatda/ssh-action@v3
+        uses: appleboy/ssh-action@v3
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
