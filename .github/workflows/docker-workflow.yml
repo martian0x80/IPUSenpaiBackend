@@ -58,5 +58,6 @@ jobs:
             #docker rm $(docker stop $(docker ps -a -q --filter ancestor=martian0x80/ipusenpai --format="{{.ID}}"))
             docker system prune -f
             echo "Running Docker Container..." | cowsay | lolcat
-            docker run -d -p 80:8080 --env-file ~/.env martian0x80/ipusenpai:latest
+            #docker run -d -p 80:8080 --env-file ~/.env martian0x80/ipusenpai:latest
+            docker-compose up -d
             echo "Pipeline completed." | cowsay | lolcat

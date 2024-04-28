@@ -1,0 +1,12 @@
+version: "3"
+services:
+    ipusenpai:
+        container_name: ipusenpai
+        stdin_open: true
+        tty: true
+        ports:
+            - 8080:8080
+        restart: always
+        env_file:
+            - ~/.env
+        image: martian0x80/ipusenpai:latest
