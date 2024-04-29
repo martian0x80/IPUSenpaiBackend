@@ -14,7 +14,7 @@ public class IPUSenpaiController : ControllerBase
     private readonly IIPUSenpaiAPI _api;
     private readonly ILogger _logger;
     private readonly IDistributedCache _cache;
-    private readonly bool _enableCache = false;
+    private readonly bool _enableCache = true;
 
     public readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
     {
