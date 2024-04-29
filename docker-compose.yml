@@ -1,12 +1,100 @@
 version: "3"
 services:
+    reverse-proxy:
+      container_name: traefik
+      image: traefik:v2.11
+      command:
+        - "--api.insecure=true"
+        - "--providers.docker"
+        - "--api.dashboard=true"
+        - "--providers.file.directory=/files/"
+        - "--providers.file.watch=true"
+        - "--providers.docker=true"
+        - "--providers.docker.exposedbydefault=false"
+        - "--entrypoints.web.address=:80"
+        - "--entrypoints.web.http.redirections.entryPoint.to=web-secure"
+        - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+        - "--entrypoints.web-secure.address=:443"
+        - "--ping=true"
+        - "--metrics.prometheus=true"
+        - "--metrics.prometheus.buckets=0.100000, 0.300000, 1.200000, 5.000000"
+        - "--metrics.prometheus.addentrypointslabels=true"
+        - "--metrics.prometheus.addserviceslabels=true"
+        - "--metrics.prometheus.entryPoint=metrics"
+        - "--entryPoints.metrics.address=:8082"
+      ports:
+        - 80:80
+        - 8080:8080
+        - 8082:8082
+        - 443:443
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /home/ubuntu/dynamic-traefik/:/files/
+    
+    prometheus:
+      image: prom/prometheus
+      container_name: prometheus
+      volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+        - prometheus_data:/prometheus
+      command:
+        - '--config.file=/etc/prometheus/prometheus.yml'
+        - '--storage.tsdb.path=/prometheus'
+        - '--storage.tsdb.retention.size=100MB'
+        - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+        - '--web.console.templates=/usr/share/prometheus/consoles'
+        - '--web.enable-admin-api'   
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)"
+        - "traefik.http.routers.prometheus.service=prometheus"
+        - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+        - "traefik.docker.network=inbound"
+      ports:
+        - 9090:9090
+      restart: unless-stopped
+
+    grafana:
+      image: grafana/grafana
+      container_name: grafana
+      depends_on:
+        - prometheus
+      ports:
+        - 3000:3000
+      volumes:
+        - grafana_data:/var/lib/grafana
+        - ./grafana/provisioning/:/etc/grafana/provisioning/
+      environment:
+        #GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
+        GF_INSTALL_PLUGINS: grafana-piechart-panel
+      labels:
+        - "traefik.http.routers.grafana.rule=Host(`grafana.locahost`)"
+        - "traefik.http.routers.grafana.service=grafana"
+          #- "traefik.http.routers.grafana.middlewares=traefik-auth"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      restart: unless-stopped
+
     ipusenpai:
         container_name: ipusenpai
         stdin_open: true
         tty: true
         ports:
-            - 8080:8080
+            - 8081:8080
         restart: always
         env_file:
             - ~/.env
         image: martian0x80/ipusenpai:latest
+        labels:
+          - "traefik.enable=true"
+          - "traefik.http.routers.ipusenpai-ubuntu.rule=Host(`api2.ipusenpai.in`)"
+          - "traefik.http.routers.ipusenpai-ubuntu.entrypoints=web-secure"
+          - 'traefik.http.routers.ipusenpai-ubuntu.tls=true'
+          - "traefik.http.routers.ipusenpai-ubuntu.tls.domains[0].main=*.ipusenpai.in"
+volumes:
+  prometheus_data:
+    external: true
+  grafana_data:
+    external: true
+networks:
+  monit:
+    external: true
