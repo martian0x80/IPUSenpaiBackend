@@ -19,6 +19,8 @@
         <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0-preview.1.24081.5" />
         <PackageReference Include="MiniProfiler.AspNetCore.Mvc" Version="4.3.8"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0-preview.1" />
+        <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.8.0-rc.1"/>
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.8.1"/>
         <PackageReference Include="StackExchange.Redis" Version="2.7.27" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     </ItemGroup>

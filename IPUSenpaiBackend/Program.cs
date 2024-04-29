@@ -7,6 +7,8 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Net.Http.Headers;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -115,6 +117,16 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resources => resources
+        .AddService("IPUSenpaiBackend"))
+    .WithMetrics(opt =>
+    {
+        opt.AddPrometheusExporter();
+        opt.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel");
+    });
+
+
 var app = builder.Build();
 
 // app.UseRateLimiter();
@@ -141,6 +153,8 @@ else
 }
 
 app.UseHttpsRedirection();
+
+app.MapPrometheusScrapingEndpoint();
 
 app.MapControllers();
 
