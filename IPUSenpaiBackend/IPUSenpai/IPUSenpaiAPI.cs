@@ -482,6 +482,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     public async Task<Dictionary<string, Dictionary<string, string>>> GetSubjectsBySID(
         string? Sid,
+        string? Enrollment,
         bool failover = false
     )
     {
@@ -491,7 +492,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               FROM results AS r
               INNER JOIN subjects AS s ON r.subcode = s.subcode
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE s0.sid = CAST(@Sid AS VARCHAR(20)) AND (((s.paperid LIKE '%' || s0.progcode || '%') AND (s.paperid = r.subcode)) OR (r.schemeid = s.schemeid AND (s.paperid = r.subcode)))
+              WHERE s0.sid = @Sid AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
 
         if (failover)
@@ -501,14 +502,14 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               FROM results AS r
               INNER JOIN subjects AS s ON r.subcode = s.subcode
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE r.enrolno = CAST(@Enrollment AS VARCHAR(12)) AND (r.subcode = s.subcode) OR (r.subcode = s.paperid)
+              WHERE r.enrolno = @Enrollment AND (r.subcode = s.subcode) OR (r.subcode = s.paperid)
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
         }
 
         using (var connection = _context.CreateConnection())
         {
             var subjects = (
-                await connection.QueryAsync<SubjectSenpai>(query, new { Sid = Sid })
+                await connection.QueryAsync<SubjectSenpai>(query, new { Sid = Sid, Enrollment = Enrollment })
             ).ToList();
             return subjects
                 .Select(g => new Dictionary<string, string>
@@ -578,7 +579,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               FROM results AS r
               INNER JOIN subjects AS s ON r.subcode = s.subcode
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE r.enrolno = CAST(@Enrollment AS VARCHAR(12)) AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
+              WHERE r.enrolno = @Enrollment AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
 
         if (failover)
@@ -588,7 +589,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               FROM results AS r
               INNER JOIN subjects AS s ON r.subcode = s.subcode
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE r.enrolno = CAST(@Enrollment AS VARCHAR(12)) AND (r.subcode = s.subcode)
+              WHERE r.enrolno = @Enrollment AND ((r.subcode = s.subcode) OR (r.subcode = s.paperid))
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
         }
 
@@ -1538,24 +1539,24 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
 
         var subject = transfer
-            ? GetSubjectsBySID(student.Sid).Result
+            ? GetSubjectsBySID(student.Sid, enrolno).Result
             : GetSubjectsByEnrollment(enrolno).Result;
 
         _logger.LogInformation($"[I] Subjects found for {enrolno} {student.Name}: {subject.Count}");
 
-        foreach (var sub in subject)
-        {
-            Console.Out.WriteLine(
-                $"{sub.Key} {sub.Value["papername"]} {sub.Value["paperid"]} {sub.Value["subcode"]}"
-            );
-        }
+        // foreach (var sub in subject)
+        // {
+        //     Console.Out.WriteLine(
+        //         $"{sub.Key} {sub.Value["papername"]} {sub.Value["paperid"]} {sub.Value["subcode"]}"
+        //     );
+        // }
 
         if (subject.Count == 0)
         {
             _logger.LogInformation($"[I] No subjects found for {enrolno} {student.Name}");
             _logger.LogInformation($"[I] Failover query initiated for {enrolno} {student.Name}");
             subject = transfer
-                ? GetSubjectsBySID(student.Sid, true).Result
+                ? GetSubjectsBySID(student.Sid, enrolno, true).Result
                 : GetSubjectsByEnrollment(enrolno, true).Result;
         }
 

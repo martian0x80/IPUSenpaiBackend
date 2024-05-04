@@ -473,8 +473,8 @@ public class IPUSenpaiController : ControllerBase
     }
 
     [HttpGet]
-    [Route("student/{enrollment}/{transfer?}")]
-    public IActionResult GetStudent(string enrollment, bool transfer = false)
+    [Route("student/{enrollment}")]
+    public IActionResult GetStudent(string enrollment)
     {
         if (_enableCache)
         {
