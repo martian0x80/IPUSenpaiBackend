@@ -1874,7 +1874,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return studentSenpai;
     }
 
-    public async Task<List<StudentSearchSenpai>> SearchStudent(
+    public async Task<List<StudentSearchSenpai>> GetSearchStudent(
         StudentSearchFilterOptionsSenpai? filter
     )
     {
@@ -1937,5 +1937,76 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
 
         return new List<StudentSearchSenpai>();
+    }
+
+    public async Task<int> GetStudentCount()
+    {
+        var query = "SELECT reltuples::bigint FROM pg_class where relname = 'student'";
+        using (var connection = _context.CreateConnection())
+        {
+            return await connection.QueryFirstOrDefaultAsync<int>(query);
+        }
+    }
+
+    public async Task<Dictionary<string, int>> GetStudentByProgrammeCount()
+    {
+        var query =
+            "SELECT prog, count(*) FROM student INNER JOIN programme ON student.progcode = programme.progcode GROUP BY prog ORDER BY count(*) DESC";
+        using (var connection = _context.CreateConnection())
+        {
+            return (await connection.QueryAsync<(string, int)>(query))
+                .ToDictionary(k => k.Item1, v => v.Item2);
+        }
+    }
+
+    public async Task<Dictionary<string, int>> GetStudentByInstituteCount(int limit = 10)
+    {
+        // Top 10 institutes
+        var query =
+            "SELECT instname, count(*) FROM student INNER JOIN institute ON student.instcode = institute.instcode GROUP BY instname ORDER BY count(*) DESC LIMIT @Limit";
+        using (var connection = _context.CreateConnection())
+        {
+            return (await connection.QueryAsync<(string, int)>(query, new
+            {
+                Limit = limit
+            })).ToDictionary(k => k.Item1, v => v.Item2);
+        }
+    }
+
+    public async Task<Dictionary<string, int>> GetStudentByBatchCount()
+    {
+        var query = "SELECT batch, count(*) FROM student GROUP BY batch ORDER BY count(*) DESC";
+        using (var connection = _context.CreateConnection())
+        {
+            return (await connection.QueryAsync<(string, int)>(query)).ToDictionary(k => k.Item1, v => v.Item2);
+        }
+    }
+
+    public async Task<int> GetResultCount()
+    {
+        var query = "SELECT reltuples::bigint FROM pg_class where relname = 'results'";
+        var realQuery = "SELECT count(*) FROM results";
+        using (var connection = _context.CreateConnection())
+        {
+            return await connection.QueryFirstOrDefaultAsync<int>(query);
+        }
+    }
+
+    public async Task<int> GetProgrammeCount()
+    {
+        var query = "SELECT count(*) FROM programme";
+        using (var connection = _context.CreateConnection())
+        {
+            return await connection.QueryFirstOrDefaultAsync<int>(query);
+        }
+    }
+
+    public async Task<int> GetInstituteCount()
+    {
+        var query = "SELECT count(*) FROM institute";
+        using (var connection = _context.CreateConnection())
+        {
+            return await connection.QueryFirstOrDefaultAsync<int>(query);
+        }
     }
 }

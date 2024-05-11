@@ -1,4 +1,4 @@
-name: Workflow to build Docker image and deploy to server
+name: Backend CI/CD
 
 on:
   push:
