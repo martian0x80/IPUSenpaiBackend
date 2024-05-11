@@ -37,5 +37,12 @@ public interface IIPUSenpaiAPI
         string batch, int pageNumber, int pageSize);
 
     public StudentSenpai? GetStudent(string enrollment);
-    public Task<List<StudentSearchSenpai>> SearchStudent(StudentSearchFilterOptionsSenpai filter);
+    public Task<List<StudentSearchSenpai>> GetSearchStudent(StudentSearchFilterOptionsSenpai filter);
+    public Task<int> GetStudentCount();
+    public Task<Dictionary<string, int>> GetStudentByProgrammeCount();
+    public Task<Dictionary<string, int>> GetStudentByInstituteCount(int limit);
+    public Task<Dictionary<string, int>> GetStudentByBatchCount();
+    public Task<int> GetResultCount();
+    public Task<int> GetProgrammeCount();
+    public Task<int> GetInstituteCount();
 }

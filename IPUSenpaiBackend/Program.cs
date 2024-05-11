@@ -1,9 +1,9 @@
 using System.Net;
 using IPUSenpaiBackend.DBContext;
 using IPUSenpaiBackend.IPUSenpai;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
+// using Microsoft.EntityFrameworkCore;
+// using Microsoft.AspNetCore.RateLimiting;
+// using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Net.Http.Headers;

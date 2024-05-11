@@ -539,7 +539,7 @@ public class IPUSenpaiController : ControllerBase
             }
         }
 
-        var search = await _api.SearchStudent(new StudentSearchFilterOptionsSenpai
+        var search = await _api.GetSearchStudent(new StudentSearchFilterOptionsSenpai
         {
             Name = name,
             Institute = institute,
@@ -553,5 +553,228 @@ public class IPUSenpaiController : ControllerBase
         }
 
         return search;
+    }
+
+    [HttpGet]
+    [Route("count/student")]
+    public async Task<int> GetStudentCount()
+    {
+        if (_enableCache)
+        {
+            var cachedCount = await _cache.GetStringAsync("GetStudentCount");
+            if (!string.IsNullOrEmpty(cachedCount))
+            {
+                try
+                {
+                    return JsonSerializer.Deserialize<int>(cachedCount);
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached student count");
+                }
+            }
+        }
+
+        var count = await _api.GetStudentCount();
+
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync("GetStudentCount", JsonSerializer.Serialize(count), CacheOptions);
+        }
+
+        return count;
+    }
+
+    [HttpGet]
+    [Route("count/student/programme")]
+    public async Task<Dictionary<string, int>> GetStudentByProgrammeCount()
+    {
+        if (_enableCache)
+        {
+            var cachedCount = await _cache.GetStringAsync("GetStudentByProgrammeCount");
+            if (!string.IsNullOrEmpty(cachedCount))
+            {
+                try
+                {
+                    return JsonSerializer.Deserialize<Dictionary<string, int>>(cachedCount) ??
+                           new Dictionary<string, int>();
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached student count by programme");
+                }
+            }
+        }
+
+        var count = await _api.GetStudentByProgrammeCount();
+
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync("GetStudentByProgrammeCount", JsonSerializer.Serialize(count), CacheOptions);
+        }
+
+        return count;
+    }
+
+    [HttpGet]
+    [Route("count/student/institute/{limit}")]
+    public async Task<Dictionary<string, int>> GetStudentByInstituteCount(int limit = 10)
+    {
+        if (_enableCache)
+        {
+            var cachedCount = await _cache.GetStringAsync($"GetStudentByInstituteCount_{limit}");
+            if (!string.IsNullOrEmpty(cachedCount))
+            {
+                try
+                {
+                    return JsonSerializer.Deserialize<Dictionary<string, int>>(cachedCount) ??
+                           new Dictionary<string, int>();
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached student count by institute");
+                }
+            }
+        }
+
+        var count = await _api.GetStudentByInstituteCount(limit);
+
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync($"GetStudentByInstituteCount_{limit}", JsonSerializer.Serialize(count),
+                CacheOptions);
+        }
+
+        return count;
+    }
+
+    [HttpGet]
+    [Route("count/student/batch")]
+    public async Task<Dictionary<string, int>> GetStudentByBatchCount()
+    {
+        if (_enableCache)
+        {
+            var cachedCount = await _cache.GetStringAsync("GetStudentByBatchCount");
+            if (!string.IsNullOrEmpty(cachedCount))
+            {
+                try
+                {
+                    return JsonSerializer.Deserialize<Dictionary<string, int>>(cachedCount) ??
+                           new Dictionary<string, int>();
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached student count by batch");
+                }
+            }
+        }
+
+        var count = await _api.GetStudentByBatchCount();
+
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync("GetStudentByBatchCount", JsonSerializer.Serialize(count), CacheOptions);
+        }
+
+        return count;
+    }
+
+    [HttpGet]
+    [Route("count/result")]
+    public async Task<int> GetResultCount()
+    {
+        if (_enableCache)
+        {
+            var cachedCount = await _cache.GetStringAsync("GetResultCount");
+            if (!string.IsNullOrEmpty(cachedCount))
+            {
+                try
+                {
+                    return JsonSerializer.Deserialize<int>(cachedCount);
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached result count");
+                }
+            }
+        }
+
+        var count = await _api.GetResultCount();
+
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync("GetResultCount", JsonSerializer.Serialize(count), CacheOptions);
+        }
+
+        return count;
+    }
+
+    [HttpGet]
+    [Route("count/result/actual")]
+    public int GetResultCountActual()
+    {
+        // select count(*) from (select enrolno, count(*) from results group by enrolno, exam);
+        // Well, the query is too slow, so I'm just going to return a constant value
+        return 413725;
+    }
+
+    [HttpGet]
+    [Route("count/programme")]
+    public async Task<int> GetProgrammeCount()
+    {
+        if (_enableCache)
+        {
+            var cachedCount = await _cache.GetStringAsync("GetProgrammeCount");
+            if (!string.IsNullOrEmpty(cachedCount))
+            {
+                try
+                {
+                    return JsonSerializer.Deserialize<int>(cachedCount);
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached programme count");
+                }
+            }
+        }
+
+        var count = await _api.GetProgrammeCount();
+
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync("GetProgrammeCount", JsonSerializer.Serialize(count), CacheOptions);
+        }
+
+        return count;
+    }
+
+    [HttpGet]
+    [Route("count/institute")]
+    public async Task<int> GetInstituteCount()
+    {
+        if (_enableCache)
+        {
+            var cachedCount = await _cache.GetStringAsync("GetInstituteCount");
+            if (!string.IsNullOrEmpty(cachedCount))
+            {
+                try
+                {
+                    return JsonSerializer.Deserialize<int>(cachedCount);
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached institute count");
+                }
+            }
+        }
+
+        var count = await _api.GetInstituteCount();
+
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync("GetInstituteCount", JsonSerializer.Serialize(count), CacheOptions);
+        }
+
+        return count;
     }
 }
