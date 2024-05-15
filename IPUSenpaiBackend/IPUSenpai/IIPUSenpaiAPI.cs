@@ -38,11 +38,14 @@ public interface IIPUSenpaiAPI
 
     public StudentSenpai? GetStudent(string enrollment);
     public Task<List<StudentSearchSenpai>> GetSearchStudent(StudentSearchFilterOptionsSenpai filter);
-    public Task<int> GetStudentCount();
+
+//    No need to expose these methods
+//    public Task<int> GetStudentCount();
+//    public Task<int> GetResultCount();
+//    public Task<int> GetProgrammeCount();
+//    public Task<int> GetInstituteCount();
+    public Task<Dictionary<string, int>> GetCounts();
     public Task<Dictionary<string, int>> GetStudentByProgrammeCount();
     public Task<Dictionary<string, int>> GetStudentByInstituteCount(int limit);
     public Task<Dictionary<string, int>> GetStudentByBatchCount();
-    public Task<int> GetResultCount();
-    public Task<int> GetProgrammeCount();
-    public Task<int> GetInstituteCount();
 }

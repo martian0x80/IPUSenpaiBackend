@@ -1939,6 +1939,25 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         return new List<StudentSearchSenpai>();
     }
 
+    public async Task<Dictionary<string, int>> GetCounts()
+    {
+        int studentCount = await GetStudentCount();
+        int resultCount = await GetResultCount();
+        int programmeCount = await GetProgrammeCount();
+        int instituteCount = await GetInstituteCount();
+        // select count(*) from (select enrolno, count(*) from results group by enrolno, exam);
+        // Well, the query is too slow, so I'm just going to return a constant value
+        int actualResultCount = 413725;
+        return new()
+        {
+            ["student"] = studentCount,
+            ["result"] = resultCount,
+            ["programme"] = programmeCount,
+            ["institute"] = instituteCount,
+            ["actualResult"] = actualResultCount
+        };
+    }
+
     public async Task<int> GetStudentCount()
     {
         var query = "SELECT reltuples::bigint FROM pg_class where relname = 'student'";

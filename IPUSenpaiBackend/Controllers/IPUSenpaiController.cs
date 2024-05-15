@@ -556,30 +556,31 @@ public class IPUSenpaiController : ControllerBase
     }
 
     [HttpGet]
-    [Route("count/student")]
-    public async Task<int> GetStudentCount()
+    [Route("count/")]
+    public async Task<Dictionary<string, int>> GetCounts()
     {
         if (_enableCache)
         {
-            var cachedCount = await _cache.GetStringAsync("GetStudentCount");
+            var cachedCount = await _cache.GetStringAsync("GetCounts");
             if (!string.IsNullOrEmpty(cachedCount))
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<int>(cachedCount);
+                    return JsonSerializer.Deserialize<Dictionary<string, int>>(cachedCount) ??
+                           new Dictionary<string, int>();
                 }
                 catch (JsonException e)
                 {
-                    _logger.LogError(e, "Error deserializing cached student count");
+                    _logger.LogError(e, "Error deserializing cached counts");
                 }
             }
         }
 
-        var count = await _api.GetStudentCount();
+        var count = await _api.GetCounts();
 
         if (_enableCache)
         {
-            await _cache.SetStringAsync("GetStudentCount", JsonSerializer.Serialize(count), CacheOptions);
+            await _cache.SetStringAsync("GetCounts", JsonSerializer.Serialize(count), CacheOptions);
         }
 
         return count;
@@ -674,105 +675,6 @@ public class IPUSenpaiController : ControllerBase
         if (_enableCache)
         {
             await _cache.SetStringAsync("GetStudentByBatchCount", JsonSerializer.Serialize(count), CacheOptions);
-        }
-
-        return count;
-    }
-
-    [HttpGet]
-    [Route("count/result")]
-    public async Task<int> GetResultCount()
-    {
-        if (_enableCache)
-        {
-            var cachedCount = await _cache.GetStringAsync("GetResultCount");
-            if (!string.IsNullOrEmpty(cachedCount))
-            {
-                try
-                {
-                    return JsonSerializer.Deserialize<int>(cachedCount);
-                }
-                catch (JsonException e)
-                {
-                    _logger.LogError(e, "Error deserializing cached result count");
-                }
-            }
-        }
-
-        var count = await _api.GetResultCount();
-
-        if (_enableCache)
-        {
-            await _cache.SetStringAsync("GetResultCount", JsonSerializer.Serialize(count), CacheOptions);
-        }
-
-        return count;
-    }
-
-    [HttpGet]
-    [Route("count/result/actual")]
-    public int GetResultCountActual()
-    {
-        // select count(*) from (select enrolno, count(*) from results group by enrolno, exam);
-        // Well, the query is too slow, so I'm just going to return a constant value
-        return 413725;
-    }
-
-    [HttpGet]
-    [Route("count/programme")]
-    public async Task<int> GetProgrammeCount()
-    {
-        if (_enableCache)
-        {
-            var cachedCount = await _cache.GetStringAsync("GetProgrammeCount");
-            if (!string.IsNullOrEmpty(cachedCount))
-            {
-                try
-                {
-                    return JsonSerializer.Deserialize<int>(cachedCount);
-                }
-                catch (JsonException e)
-                {
-                    _logger.LogError(e, "Error deserializing cached programme count");
-                }
-            }
-        }
-
-        var count = await _api.GetProgrammeCount();
-
-        if (_enableCache)
-        {
-            await _cache.SetStringAsync("GetProgrammeCount", JsonSerializer.Serialize(count), CacheOptions);
-        }
-
-        return count;
-    }
-
-    [HttpGet]
-    [Route("count/institute")]
-    public async Task<int> GetInstituteCount()
-    {
-        if (_enableCache)
-        {
-            var cachedCount = await _cache.GetStringAsync("GetInstituteCount");
-            if (!string.IsNullOrEmpty(cachedCount))
-            {
-                try
-                {
-                    return JsonSerializer.Deserialize<int>(cachedCount);
-                }
-                catch (JsonException e)
-                {
-                    _logger.LogError(e, "Error deserializing cached institute count");
-                }
-            }
-        }
-
-        var count = await _api.GetInstituteCount();
-
-        if (_enableCache)
-        {
-            await _cache.SetStringAsync("GetInstituteCount", JsonSerializer.Serialize(count), CacheOptions);
         }
 
         return count;
