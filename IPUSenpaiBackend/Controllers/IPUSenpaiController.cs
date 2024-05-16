@@ -14,7 +14,7 @@ public class IPUSenpaiController : ControllerBase
     private readonly IIPUSenpaiAPI _api;
     private readonly ILogger _logger;
     private readonly IDistributedCache _cache;
-    private readonly bool _enableCache = true;
+    private readonly bool _enableCache = false;
 
     public readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
     {
@@ -587,94 +587,31 @@ public class IPUSenpaiController : ControllerBase
     }
 
     [HttpGet]
-    [Route("count/student/programme")]
-    public async Task<Dictionary<string, int>> GetStudentByProgrammeCount()
+    [Route("count/by/{instLimit?}")]
+    public async Task<StudentCountBy> GetCountsBy(int instLimit = 10)
     {
         if (_enableCache)
         {
-            var cachedCount = await _cache.GetStringAsync("GetStudentByProgrammeCount");
+            var cachedCount = await _cache.GetStringAsync($"GetCountsBy_{instLimit}");
             if (!string.IsNullOrEmpty(cachedCount))
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<Dictionary<string, int>>(cachedCount) ??
-                           new Dictionary<string, int>();
+                    return JsonSerializer.Deserialize<StudentCountBy>(cachedCount) ??
+                           new StudentCountBy();
                 }
                 catch (JsonException e)
                 {
-                    _logger.LogError(e, "Error deserializing cached student count by programme");
+                    _logger.LogError(e, "Error deserializing cached counts by");
                 }
             }
         }
 
-        var count = await _api.GetStudentByProgrammeCount();
+        var count = await _api.GetCountsBy(instLimit);
 
         if (_enableCache)
         {
-            await _cache.SetStringAsync("GetStudentByProgrammeCount", JsonSerializer.Serialize(count), CacheOptions);
-        }
-
-        return count;
-    }
-
-    [HttpGet]
-    [Route("count/student/institute/{limit}")]
-    public async Task<Dictionary<string, int>> GetStudentByInstituteCount(int limit = 10)
-    {
-        if (_enableCache)
-        {
-            var cachedCount = await _cache.GetStringAsync($"GetStudentByInstituteCount_{limit}");
-            if (!string.IsNullOrEmpty(cachedCount))
-            {
-                try
-                {
-                    return JsonSerializer.Deserialize<Dictionary<string, int>>(cachedCount) ??
-                           new Dictionary<string, int>();
-                }
-                catch (JsonException e)
-                {
-                    _logger.LogError(e, "Error deserializing cached student count by institute");
-                }
-            }
-        }
-
-        var count = await _api.GetStudentByInstituteCount(limit);
-
-        if (_enableCache)
-        {
-            await _cache.SetStringAsync($"GetStudentByInstituteCount_{limit}", JsonSerializer.Serialize(count),
-                CacheOptions);
-        }
-
-        return count;
-    }
-
-    [HttpGet]
-    [Route("count/student/batch")]
-    public async Task<Dictionary<string, int>> GetStudentByBatchCount()
-    {
-        if (_enableCache)
-        {
-            var cachedCount = await _cache.GetStringAsync("GetStudentByBatchCount");
-            if (!string.IsNullOrEmpty(cachedCount))
-            {
-                try
-                {
-                    return JsonSerializer.Deserialize<Dictionary<string, int>>(cachedCount) ??
-                           new Dictionary<string, int>();
-                }
-                catch (JsonException e)
-                {
-                    _logger.LogError(e, "Error deserializing cached student count by batch");
-                }
-            }
-        }
-
-        var count = await _api.GetStudentByBatchCount();
-
-        if (_enableCache)
-        {
-            await _cache.SetStringAsync("GetStudentByBatchCount", JsonSerializer.Serialize(count), CacheOptions);
+            await _cache.SetStringAsync($"GetCountsBy_{instLimit}", JsonSerializer.Serialize(count), CacheOptions);
         }
 
         return count;

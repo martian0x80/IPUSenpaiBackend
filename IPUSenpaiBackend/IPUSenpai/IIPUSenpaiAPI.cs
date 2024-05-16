@@ -45,7 +45,5 @@ public interface IIPUSenpaiAPI
 //    public Task<int> GetProgrammeCount();
 //    public Task<int> GetInstituteCount();
     public Task<Dictionary<string, int>> GetCounts();
-    public Task<Dictionary<string, int>> GetStudentByProgrammeCount();
-    public Task<Dictionary<string, int>> GetStudentByInstituteCount(int limit);
-    public Task<Dictionary<string, int>> GetStudentByBatchCount();
+    public Task<StudentCountBy> GetCountsBy(int instLimit);
 }
