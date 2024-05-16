@@ -1958,23 +1958,23 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         };
     }
 
-    public async Task<StudentCountBy> GetCountsBy(int instLimit = 10)
+    public async Task<StudentCountBy> GetCountsBy(int limit = 10)
     {
         return new()
         {
-            ByProgramme = await GetStudentByProgrammeCount(),
-            ByInstitute = await GetStudentByInstituteCount(instLimit),
-            ByBatch = await GetStudentByBatchCount()
+            ByProgramme = await GetStudentByProgrammeCount(limit),
+            ByInstitute = await GetStudentByInstituteCount(limit),
+            ByBatch = await GetStudentByBatchCount(limit)
         };
     }
 
-    public async Task<StudentCountByProgramme> GetStudentByProgrammeCount()
+    public async Task<StudentCountByProgramme> GetStudentByProgrammeCount(int limit = 10)
     {
         var query =
-            "SELECT prog, count(*) FROM student INNER JOIN programme ON student.progcode = programme.progcode GROUP BY prog ORDER BY count(*) DESC";
+            "SELECT prog, count(*) FROM student INNER JOIN programme ON student.progcode = programme.progcode GROUP BY prog ORDER BY count(*) DESC LIMIT @Limit";
         using (var connection = _context.CreateConnection())
         {
-            var resp = (await connection.QueryAsync<(string, int)>(query))
+            var resp = (await connection.QueryAsync<(string, int)>(query, new { Limit = limit }))
                 .Select(s => new StudentCountSingle
                 {
                     Name = s.Item1,
@@ -2009,12 +2009,12 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         }
     }
 
-    public async Task<StudentCountByBatch> GetStudentByBatchCount()
+    public async Task<StudentCountByBatch> GetStudentByBatchCount(int limit = 10)
     {
-        var query = "SELECT batch, count(*) FROM student GROUP BY batch ORDER BY count(*) DESC";
+        var query = "SELECT batch, count(*) FROM student GROUP BY batch ORDER BY count(*) DESC LIMIT @Limit";
         using (var connection = _context.CreateConnection())
         {
-            var resp = (await connection.QueryAsync<(string, int)>(query))
+            var resp = (await connection.QueryAsync<(string, int)>(query, new { Limit = limit }))
                 .Select(s => new StudentCountSingle
                 {
                     Name = s.Item1,
