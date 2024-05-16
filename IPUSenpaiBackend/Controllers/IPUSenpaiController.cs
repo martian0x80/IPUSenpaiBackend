@@ -14,7 +14,7 @@ public class IPUSenpaiController : ControllerBase
     private readonly IIPUSenpaiAPI _api;
     private readonly ILogger _logger;
     private readonly IDistributedCache _cache;
-    private readonly bool _enableCache = false;
+    private readonly bool _enableCache = true;
 
     public readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
     {
@@ -587,12 +587,12 @@ public class IPUSenpaiController : ControllerBase
     }
 
     [HttpGet]
-    [Route("count/by/{instLimit?}")]
-    public async Task<StudentCountBy> GetCountsBy(int instLimit = 10)
+    [Route("count/by/{limit?}")]
+    public async Task<StudentCountBy> GetCountsBy(int limit = 10)
     {
         if (_enableCache)
         {
-            var cachedCount = await _cache.GetStringAsync($"GetCountsBy_{instLimit}");
+            var cachedCount = await _cache.GetStringAsync($"GetCountsBy_{limit}");
             if (!string.IsNullOrEmpty(cachedCount))
             {
                 try
@@ -607,11 +607,11 @@ public class IPUSenpaiController : ControllerBase
             }
         }
 
-        var count = await _api.GetCountsBy(instLimit);
+        var count = await _api.GetCountsBy(limit);
 
         if (_enableCache)
         {
-            await _cache.SetStringAsync($"GetCountsBy_{instLimit}", JsonSerializer.Serialize(count), CacheOptions);
+            await _cache.SetStringAsync($"GetCountsBy_{limit}", JsonSerializer.Serialize(count), CacheOptions);
         }
 
         return count;
