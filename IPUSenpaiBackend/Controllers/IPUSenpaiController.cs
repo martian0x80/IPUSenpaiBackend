@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using IPUSenpaiBackend.IPUSenpai;
 using IPUSenpaiBackend.CustomEntities;
 using Microsoft.AspNetCore.Mvc;
@@ -254,7 +255,7 @@ public class IPUSenpaiController : ControllerBase
             ["BACHELOR OF COMPUTER APPLICATIONS"] = 3,
             ["BACHELOR OF EDUCATION"] = 4,
             ["BACHELOR OF TECHNOLOGY"] = 4,
-            ["I HAVE NO IDEA?"] = -1,
+            ["I HAVE NO IDEA?"] = 0,
             ["INTEGRATED"] = 5,
             ["MASTER OF BUSINESS ADMINISTRATION"] = 2,
             ["MASTER OF COMPUTER APPLICATIONS"] = 2,
@@ -496,7 +497,11 @@ public class IPUSenpaiController : ControllerBase
         var student = _api.GetStudent(enrollment);
         if (student == null)
         {
-            return NotFound(new { message = "Student ki jankaari nahi mili, bhai" });
+            return NotFound(new
+            {
+                message =
+                    "S-Student ki jankaawi ^w^ nyahi miwi, OwO bhai.\nInvawid *runs away* ow (・`ω\u00b4・) nyon-existent *sweats* e-enwowwment nyumbew."
+            });
         }
 
         if (_enableCache)
@@ -514,13 +519,18 @@ public class IPUSenpaiController : ControllerBase
     [HttpGet]
     //[Route("student/search/name={Name}&institute={Institute}&prog={Programme}&batch={Batch}")]
     [Route("student/search/{name}")]
-    public async Task<List<StudentSearchSenpai>> SearchStudent(string name = "", string? institute = "",
+    public async Task<IActionResult> SearchStudent(string name = "", string? institute = "",
         string? programme = "", string? batch = "")
     {
         if (name.Length < 3)
         {
-            return new List<StudentSearchSenpai>();
+            return BadRequest(new { message = "Name must be at least 3 characters long" });
         }
+
+        // if (!Regex.IsMatch(name, @"[a-zA-Z\s]"))
+        // {
+        //     return BadRequest(new { message = "Name must contain only ASCII characters" });
+        // }
 
         if (_enableCache)
         {
@@ -529,10 +539,9 @@ public class IPUSenpaiController : ControllerBase
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<List<StudentSearchSenpai>>(cachedSearch) ??
-                           new List<StudentSearchSenpai>(new[] { new StudentSearchSenpai() });
+                    return Ok(JsonSerializer.Deserialize<List<StudentSearchSenpai>>(cachedSearch));
                 }
-                catch (JsonException e)
+                catch (Exception e)
                 {
                     _logger.LogError(e, "Error deserializing cached student search");
                 }
@@ -552,7 +561,7 @@ public class IPUSenpaiController : ControllerBase
                 JsonSerializer.Serialize(search), CacheOptions);
         }
 
-        return search;
+        return Ok(search);
     }
 
     [HttpGet]
