@@ -15,6 +15,10 @@
 
 [![IPUSenpai Backend](https://github.com/martian0x80/IPUSenpaiBackend/actions/workflows/docker-workflow.yml/badge.svg)](https://github.com/martian0x80/IPUSenpaiBackend/actions/workflows/docker-workflow.yml)
 
+[![Uptime Status](https://status.rmrf.online/api/badge/11/status?style=flat)](https://www.rmrf.online/status/ipusenpai)
+[![Uptime Status](https://status.rmrf.online/api/badge/11/ping?style=flat)](https://www.rmrf.online/status/ipusenpai)
+[![Uptime Status](https://status.rmrf.online/api/badge/11/uptime?style=flat)](https://www.rmrf.online/status/ipusenpai)
+[![Uptime Status](https://status.rmrf.online/api/badge/11/response?style=flat)](https://www.rmrf.online/status/ipusenpai)
 
 [![GitHub issues](https://img.shields.io/github/issues/martian0x80/IPUSenpaiBackend)](https://github.com/martian0x80/IPUSenpaiBackend/issues)
 [![GitHub license](https://img.shields.io/github/license/martian0x80/IPUSenpaiBackend)](https://github.com/martian0x80/IPUSenpaiBackend/blob/master/LICENSE)
