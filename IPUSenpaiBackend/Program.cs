@@ -47,13 +47,6 @@ builder.Services.AddResponseCompression(options =>
     options.Providers.Add<GzipCompressionProvider>();
 });
 
-builder.Services.AddOutputCache(options =>
-{
-    options.AddBasePolicy(policy => policy.Cache());
-    options.SizeLimit = 20;
-    options.DefaultExpirationTimeSpan = TimeSpan.FromMinutes(60);
-});
-
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("CONNSTR2");
@@ -134,8 +127,6 @@ var app = builder.Build();
 app.UseCors();
 
 app.UseResponseCompression();
-
-app.UseOutputCache();
 
 app.UseRequestTimeouts();
 

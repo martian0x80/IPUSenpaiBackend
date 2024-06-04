@@ -15,7 +15,7 @@ public class IPUSenpaiController : ControllerBase
     private readonly IIPUSenpaiAPI _api;
     private readonly ILogger _logger;
     private readonly IDistributedCache _cache;
-    private readonly bool _enableCache = false;
+    private readonly bool _enableCache = true;
 
     public readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
     {
@@ -628,9 +628,32 @@ public class IPUSenpaiController : ControllerBase
 
     [HttpGet]
     [Route("search/subjects/{query}/{limit?}")]
-    public async Task<IActionResult> GetSearch(string query, int limit = 10)
+    public async Task<IActionResult> GetSearchSubjects(string query, int limit = 10)
     {
+        if (_enableCache)
+        {
+            var cachedResult = await _cache.GetStringAsync($"GetSearchSubjects_{query}_{limit}");
+            if (!string.IsNullOrEmpty(cachedResult))
+            {
+                try
+                {
+                    return Ok(JsonSerializer.Deserialize<List<SubjectSenpaiFull>>(cachedResult));
+                }
+                catch (JsonException e)
+                {
+                    _logger.LogError(e, "Error deserializing cached subject search");
+                }
+            }
+        }
+
         var result = await _api.GetSearchSubjects(query, limit);
+
+        if (_enableCache)
+        {
+            await _cache.SetStringAsync($"GetSearchSubjects_{query}_{limit}", JsonSerializer.Serialize(result),
+                CacheOptions);
+        }
+
         return Ok(result);
     }
 }
