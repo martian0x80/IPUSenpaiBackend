@@ -2064,4 +2064,19 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             return await connection.QueryFirstOrDefaultAsync<int>(query);
         }
     }
+
+    public async Task<List<SubjectSenpaiFull>> GetSearchSubjects(string squery, int limit)
+    {
+        if (squery.Length < 2)
+        {
+            return new List<SubjectSenpaiFull>();
+        }
+
+        var query = "SELECT * FROM subjects WHERE subcode ILIKE @Squery OR paperid ILIKE @Squery LIMIT @Limit";
+
+        using var connection = _context.CreateConnection();
+
+        return (await connection.QueryAsync<SubjectSenpaiFull>(query,
+            new { Squery = $"%{squery}%", Limit = limit })).ToList();
+    }
 }
