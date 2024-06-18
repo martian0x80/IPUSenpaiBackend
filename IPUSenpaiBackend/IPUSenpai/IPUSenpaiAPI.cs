@@ -2072,7 +2072,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             return new List<SubjectSenpaiFull>();
         }
 
-        var query = "SELECT * FROM subjects WHERE subcode ILIKE @Squery OR paperid ILIKE @Squery LIMIT @Limit";
+        var query = "SELECT * FROM subjects WHERE subcode ILIKE @Squery OR paperid ILIKE @Squery OR papername ILIKE @Squery LIMIT @Limit";
 
         using var connection = _context.CreateConnection();
 
