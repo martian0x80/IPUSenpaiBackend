@@ -1891,6 +1891,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     ORDER BY s.enrolno"
             );
             builder.Where("s.name ILIKE CAST(@Name AS TEXT)", new { Name = $"%{filter.Name}%" });
+            // builder.Where("to_tsvector(s.name) @@ to_tsquery(@Name)", new { Name = filter.Name });
 
             if (!string.IsNullOrEmpty(filter.Institute))
             {
@@ -2072,7 +2073,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             return new List<SubjectSenpaiFull>();
         }
 
-        var query = "SELECT * FROM subjects WHERE subcode ILIKE @Squery OR paperid ILIKE @Squery OR papername ILIKE @Squery LIMIT @Limit";
+        var query =
+            "SELECT * FROM subjects WHERE (to_tsvector('english', subcode || ' ' || paperid || ' ' || papername) @@ plainto_tsquery('english', @Squery)) LIMIT @Limit";
 
         using var connection = _context.CreateConnection();
 

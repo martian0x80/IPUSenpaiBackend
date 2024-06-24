@@ -628,7 +628,7 @@ public class IPUSenpaiController : ControllerBase
 
     [HttpGet]
     [Route("search/subjects/{query}/{limit?}")]
-    public async Task<IActionResult> GetSearchSubjects(string query, int limit = 10)
+    public async Task<IActionResult> GetSearchSubjects(string query, int limit = 20)
     {
         if (_enableCache)
         {
