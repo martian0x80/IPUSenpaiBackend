@@ -24,7 +24,7 @@ public class IPUSenpaiController : ControllerBase
 
     public readonly DistributedCacheEntryOptions CacheOptions = new DistributedCacheEntryOptions
     {
-        // AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60 * 60 * 24 * 30 * 6) // 6 months
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60 * 60) // 6 months
     };
 
     public IPUSenpaiController(IIPUSenpaiAPI api, ILogger<IPUSenpaiController> logger, IDistributedCache cache)
