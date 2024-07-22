@@ -579,7 +579,14 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               FROM results AS r
               INNER JOIN subjects AS s ON r.subcode = s.subcode
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE r.enrolno = @Enrollment AND ((s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0) OR r.schemeid = s.schemeid)
+              WHERE r.enrolno = @Enrollment
+                AND (
+                    (s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0 AND r.schemeid = s.schemeid)
+                    OR
+                    (s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0)
+                    OR
+                    r.schemeid = s.schemeid
+                )
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
 
         if (failover)
@@ -885,6 +892,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
                                 // subject = GetSubjectsByEnrollment(r.Enrolno).Result;
                                 errorCount++;
+                                Console.Out.WriteLine($"{s.Subcode}, {r.Enrolno}, {r.Name}, {errorCount}, {r.Subs}");
                             }
                             else if (errorCount >= 30)
                             {
