@@ -581,7 +581,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
               INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
               WHERE r.enrolno = @Enrollment
                 AND (
-                    (s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0 AND r.schemeid = s.schemeid) 
+                    (s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0 AND r.schemeid = s.schemeid)
+                    OR (r.schemeid = s.schemeid)
                 )
               GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
 
