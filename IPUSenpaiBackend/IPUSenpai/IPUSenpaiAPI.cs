@@ -575,26 +575,61 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         //     }).ToListAsync();
 
         var query =
-            @"SELECT s.subcode AS Subcode, s.paperid AS Paperid, s.papername AS Papername, s.passmarks AS Passmarks, s.maxmarks AS Maxmarks, s.credits AS Credits
-              FROM results AS r
-              INNER JOIN subjects AS s ON r.subcode = s.subcode
-              INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE r.enrolno = @Enrollment
-                AND (
-                    (s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0 AND r.schemeid = s.schemeid)
-                    OR (r.schemeid = s.schemeid)
-                )
-              GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
+            @"SELECT s.subcode AS Subcode, 
+            s.paperid AS Paperid, 
+            s.papername AS Papername, 
+            s.passmarks AS Passmarks, 
+            s.maxmarks AS Maxmarks, 
+            s.credits AS Credits,
+            CASE 
+               WHEN s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0 AND r.schemeid = s.schemeid THEN 1
+               WHEN s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0 THEN 2
+               WHEN r.schemeid = s.schemeid THEN 3
+               ELSE 4
+            END AS priority
+            FROM results AS r
+            INNER JOIN subjects AS s ON r.subcode = s.subcode
+            INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
+            WHERE r.enrolno = @Enrollment
+            AND (
+            (s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0 AND r.schemeid = s.schemeid)
+            OR
+            (s.paperid IS NOT NULL AND s0.progcode IS NOT NULL AND strpos(s.paperid, s0.progcode) > 0)
+            OR
+            r.schemeid = s.schemeid
+            )
+            GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits, priority
+            ORDER BY priority;";
 
         if (failover)
         {
+            // query =
+            //     @"SELECT s.subcode AS Subcode, s.paperid AS Paperid, s.papername AS Papername, s.passmarks AS Passmarks, s.maxmarks AS Maxmarks, s.credits AS Credits
+            //   FROM results AS r
+            //   INNER JOIN subjects AS s ON r.subcode = s.subcode
+            //   INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
+            //   WHERE r.enrolno = @Enrollment AND ((r.subcode = s.subcode) OR (r.subcode = s.paperid))
+            //   GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
+
             query =
-                @"SELECT s.subcode AS Subcode, s.paperid AS Paperid, s.papername AS Papername, s.passmarks AS Passmarks, s.maxmarks AS Maxmarks, s.credits AS Credits
-              FROM results AS r
-              INNER JOIN subjects AS s ON r.subcode = s.subcode
-              INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
-              WHERE r.enrolno = @Enrollment AND ((r.subcode = s.subcode) OR (r.subcode = s.paperid))
-              GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits";
+                @"SELECT s.subcode AS Subcode, 
+                s.paperid AS Paperid, 
+                s.papername AS Papername, 
+                s.passmarks AS Passmarks, 
+                s.maxmarks AS Maxmarks, 
+                s.credits AS Credits,
+                CASE 
+                   WHEN r.subcode = s.subcode THEN 1
+                   WHEN r.subcode = s.paperid THEN 2
+                   ELSE 3
+                END AS priority
+                FROM results AS r
+                INNER JOIN subjects AS s ON r.subcode = s.subcode
+                INNER JOIN student AS s0 ON r.enrolno = s0.enrolno
+                WHERE r.enrolno = @Enrollment 
+                AND ((r.subcode = s.subcode) OR (r.subcode = s.paperid))
+                GROUP BY s.subcode, s.paperid, s.papername, s.passmarks, s.maxmarks, s.credits, priority
+                ORDER BY priority;";
         }
 
         using (var connection = _context.CreateConnection())
