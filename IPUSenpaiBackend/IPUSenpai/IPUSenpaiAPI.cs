@@ -688,6 +688,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     private class Result
     {
+        public int Id { get; set; }
         public string Enrolno { get; set; }
         public string Name { get; set; }
         public string Subcode { get; set; }
@@ -790,7 +791,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         var builder = new SqlBuilder();
         var selector = builder.AddTemplate(
-            @"SELECT r.enrolno AS Enrolno, s.name AS Name, r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
+            @"SELECT r.result_id AS Id, r.enrolno AS Enrolno, s.name AS Name, r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
             FROM results AS r
             /**innerjoin**/
             /**leftjoin**/
@@ -828,7 +829,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Enrolno = g.Key,
                 Name = g.Select(s => s.Name).FirstOrDefault(),
                 Subs = g.GroupBy(s => s.Subcode)
-                    .Select(subGroup => subGroup.OrderBy(s => GetExamType(s.Exam)).First())
+                    .Select(subGroup => subGroup
+                        .OrderByDescending(s => s.Id)
+                        .ThenBy(s => GetExamType(s.Exam))
+                        .First())
                     .Select(s => new
                     {
                         Subcode = s.Subcode,
@@ -1116,7 +1120,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         var builder = new SqlBuilder();
         var selector = builder.AddTemplate(
-            @"SELECT r.enrolno AS Enrolno, s.name AS Name, r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
+            @"SELECT r.result_id AS Id, r.enrolno AS Enrolno, s.name AS Name, r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
             FROM results AS r
             /**innerjoin**/
             /**leftjoin**/
@@ -1158,7 +1162,10 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                         Semester = s.Key,
                         Subs = s.GroupBy(sub => sub.Subcode)
                             .Select(subGroup =>
-                                subGroup.OrderBy(sub => GetExamType(sub.Exam)).First()
+                                subGroup
+                                    .OrderByDescending(sub => sub.Id)
+                                    .ThenBy(sub => GetExamType(sub.Exam))
+                                    .First()
                             )
                             .Select(sub => new
                             {
@@ -1497,7 +1504,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
         var query2 = new SqlBuilder();
         var selector = query2.AddTemplate(
-            @"SELECT r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
+            @"SELECT r.result_id AS Id, r.subcode AS Subcode, r.internal AS Internal, r.external AS External, r.total AS Total, r.semester AS Semester, r.exam AS Exam, r.resultdate AS Resultdate
               FROM results AS r
                 /**innerjoin**/
                 /**where**/
@@ -1546,17 +1553,21 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 Semester = s.Key,
                 Subs = s.GroupBy(sub => sub.Subcode)
-                    .Select(subGroup => subGroup.OrderBy(sub => GetExamType(sub.Exam)).First())
-                    .Select(sub => new
-                    {
-                        Subcode = sub.Subcode,
-                        Name = sub.Name,
-                        Internal = sub.Internal,
-                        External = sub.External,
-                        Total = sub.Total,
-                        Exam = sub.Exam,
-                        ExamType = GetExamType(sub.Exam)
-                    })
+                    .Select(subGroup => 
+                        subGroup
+                            .OrderByDescending(sub => sub.Id)
+                            .ThenBy(sub => GetExamType(sub.Exam))
+                            .First())
+                        .Select(sub => new
+                        {
+                            Subcode = sub.Subcode,
+                            Name = sub.Name,
+                            Internal = sub.Internal,
+                            External = sub.External,
+                            Total = sub.Total,
+                            Exam = sub.Exam,
+                            ExamType = GetExamType(sub.Exam)
+                        })
             })
             .ToList();
 
