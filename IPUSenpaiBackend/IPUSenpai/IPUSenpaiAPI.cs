@@ -906,8 +906,29 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 int totalcreditmarksweighted = 0;
                 int totalcreditmarks = 0;
 
-                foreach (var s in r.Subs)
+                var paperIdGroups = r.Subs
+                    .Select(sub =>
+                    {
+                        if (subject.TryGetValue(sub.Subcode, out var subDetails))
+                        {
+                            return new { Sub = sub, PaperId = subDetails["paperid"] };
+                        }
+
+                        _logger.LogWarning($"Paper ID not found for {sub.Subcode} in {r.Enrolno}");
+                        return null;
+                    })
+                    .Where(x => x != null)
+                    .GroupBy(x => x.PaperId);
+
+                foreach (var paperGroup in paperIdGroups)
                 {
+                    // First prefer subcodes starting with letters
+                    var selectedSub = paperGroup
+                        .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
+                        .First()
+                        .Sub;
+
+                    var s = selectedSub;
                     if (!subject.ContainsKey(s.Subcode))
                     {
                         lock (subjectLock)
@@ -1254,8 +1275,31 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                         int semestercredits = 0;
                         int semestercreditmarksweighted = 0;
                         int semestercreditmarksmax = 0;
-                        foreach (var sub in s.Subs)
+
+                        // First group by paper ID using the subject dictionary
+                        var paperIdGroups = s.Subs
+                            .Select(sub =>
+                            {
+                                if (subject.TryGetValue(sub.Subcode, out var subDetails))
+                                {
+                                    return new { Sub = sub, PaperId = subDetails["paperid"] };
+                                }
+
+                                _logger.LogWarning($"Paper ID not found for {sub.Subcode} in semester {s.Semester}");
+                                return null;
+                            })
+                            .Where(x => x != null)
+                            .GroupBy(x => x.PaperId);
+
+                        foreach (var paperGroup in paperIdGroups)
                         {
+                            // First prefer subcodes starting with letters
+                            var selectedSub = paperGroup
+                                .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
+                                .First()
+                                .Sub;
+
+                            var sub = selectedSub;
                             if (!subject.ContainsKey(sub.Subcode))
                             {
                                 lock (subjectLock)
@@ -1454,6 +1498,11 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         public string? Sid { get; set; }
     }
 
+    private bool IsPreferredSubcodeType(string subcode)
+    {
+        return !string.IsNullOrEmpty(subcode) && char.IsLetter(subcode[0]);
+    }
+
     public StudentSenpai? GetStudent(string enrolno)
     {
         _logger.LogInformation($"\n [I] Getting student details for {enrolno}\n");
@@ -1553,21 +1602,21 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 Semester = s.Key,
                 Subs = s.GroupBy(sub => sub.Subcode)
-                    .Select(subGroup => 
+                    .Select(subGroup =>
                         subGroup
                             .OrderBy(sub => GetExamType(sub.Exam))
                             .ThenByDescending(sub => sub.Id)
                             .First())
-                        .Select(sub => new
-                        {
-                            Subcode = sub.Subcode,
-                            Name = sub.Name,
-                            Internal = sub.Internal,
-                            External = sub.External,
-                            Total = sub.Total,
-                            Exam = sub.Exam,
-                            ExamType = GetExamType(sub.Exam)
-                        })
+                    .Select(sub => new
+                    {
+                        Subcode = sub.Subcode,
+                        Name = sub.Name,
+                        Internal = sub.Internal,
+                        External = sub.External,
+                        Total = sub.Total,
+                        Exam = sub.Exam,
+                        ExamType = GetExamType(sub.Exam)
+                    })
             })
             .ToList();
 
@@ -1669,6 +1718,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         float weightedsgpa = 0;
         List<string> subs = new();
 
+
         foreach (var s in groupedResult)
         {
             int semestermarks = 0;
@@ -1686,8 +1736,30 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 }
             );
 
-            foreach (var sub in s.Subs)
+            // First group by paper ID using the subject dictionary
+            var paperIdGroups = s.Subs
+                .Select(sub =>
+                {
+                    if (subject.TryGetValue(sub.Subcode, out var subDetails))
+                    {
+                        return new { Sub = sub, PaperId = subDetails["paperid"] };
+                    }
+
+                    _logger.LogWarning($"Paper ID not found for {sub.Subcode} in semester {s.Semester}");
+                    return null;
+                })
+                .Where(x => x != null)
+                .GroupBy(x => x.PaperId);
+
+            foreach (var paperGroup in paperIdGroups)
             {
+                // Prefer subcodes starting with letters
+                var selectedSub = paperGroup
+                    .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
+                    .First()
+                    .Sub;
+
+                var sub = selectedSub;
                 if (!subject.ContainsKey(sub.Subcode))
                 {
                     lock (subjectLock)
