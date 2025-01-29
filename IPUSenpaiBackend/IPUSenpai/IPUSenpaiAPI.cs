@@ -830,8 +830,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Name = g.Select(s => s.Name).FirstOrDefault(),
                 Subs = g.GroupBy(s => s.Subcode)
                     .Select(subGroup => subGroup
-                        .OrderByDescending(s => s.Id)
-                        .ThenBy(s => GetExamType(s.Exam))
+                        .OrderBy(s => GetExamType(s.Exam))
+                        .ThenByDescending(s => s.Id)
                         .First())
                     .Select(s => new
                     {
@@ -1163,8 +1163,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                         Subs = s.GroupBy(sub => sub.Subcode)
                             .Select(subGroup =>
                                 subGroup
-                                    .OrderByDescending(sub => sub.Id)
-                                    .ThenBy(sub => GetExamType(sub.Exam))
+                                    .OrderBy(sub => GetExamType(sub.Exam))
+                                    .ThenByDescending(sub => sub.Id)
                                     .First()
                             )
                             .Select(sub => new
@@ -1555,8 +1555,8 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 Subs = s.GroupBy(sub => sub.Subcode)
                     .Select(subGroup => 
                         subGroup
-                            .OrderByDescending(sub => sub.Id)
-                            .ThenBy(sub => GetExamType(sub.Exam))
+                            .OrderBy(sub => GetExamType(sub.Exam))
+                            .ThenByDescending(sub => sub.Id)
                             .First())
                         .Select(sub => new
                         {
