@@ -2071,7 +2071,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
         int instituteCount = await GetInstituteCount();
         // select count(*) from (select enrolno, count(*) from results group by enrolno, exam);
         // Well, the query is too slow, so I'm just going to return a constant value
-        int actualResultCount = 413725;
+        int actualResultCount = 577830;
         return new()
         {
             ["student"] = studentCount,
