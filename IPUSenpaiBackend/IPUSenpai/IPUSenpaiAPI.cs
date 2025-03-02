@@ -675,15 +675,20 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
     private ExamType GetExamType(string exam)
     {
+        ExamType bestMatch = ExamType.Regular;
+        string longestMatchValue = "";
+
         foreach (ExamType examType in Enum.GetValues(typeof(ExamType)))
         {
-            if (exam.Contains(examType.StringValue()))
+            string stringValue = examType.StringValue();
+            if (exam.Contains(stringValue) && stringValue.Length > longestMatchValue.Length)
             {
-                return examType;
+                bestMatch = examType;
+                longestMatchValue = stringValue;
             }
         }
 
-        return ExamType.Regular;
+        return bestMatch;
     }
 
     private class Result
@@ -922,9 +927,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
 
                 foreach (var paperGroup in paperIdGroups)
                 {
-                    // First prefer subcodes starting with letters
+                    // First prefer subcodes starting with letters, no you don't mf
                     var selectedSub = paperGroup
-                        .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
+                        // .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
                         .First()
                         .Sub;
 
@@ -1295,7 +1300,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                         {
                             // First prefer subcodes starting with letters
                             var selectedSub = paperGroup
-                                .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
+                                // .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
                                 .First()
                                 .Sub;
 
@@ -1605,7 +1610,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                     .Select(subGroup =>
                         subGroup
                             .OrderBy(sub => GetExamType(sub.Exam))
-                            .ThenByDescending(sub => sub.Id)
+                            .ThenBy(sub => sub.Id)
                             .First())
                     .Select(sub => new
                     {
@@ -1742,6 +1747,7 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
                 {
                     if (subject.TryGetValue(sub.Subcode, out var subDetails))
                     {
+                        // ExamType = GetExamType(sub.Exam)
                         return new { Sub = sub, PaperId = subDetails["paperid"] };
                     }
 
@@ -1755,7 +1761,9 @@ public class IPUSenpaiAPI : IIPUSenpaiAPI
             {
                 // Prefer subcodes starting with letters
                 var selectedSub = paperGroup
-                    .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
+                    // .OrderBy(x => x.ExamType)
+                    // Why did I do this? I don't remember, should've saved the sample data
+                    // .OrderByDescending(x => IsPreferredSubcodeType(x.Sub.Subcode))
                     .First()
                     .Sub;
 
