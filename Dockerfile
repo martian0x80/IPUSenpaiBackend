@@ -1,4 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+
+ENV ASPNETCORE_URLS=http://+:8080
+
 WORKDIR /App
 
 # Copy everything
