@@ -42,7 +42,7 @@
     <a href="https://www.ipusenpai.in/">Home Page</a> |
     <a href="">Discord</a> |
     <a href="mailto:ipusenpai0x80@gmail.com">Mail</a> |
-    <a href="https://github.com/martian0x80/IPUSenpaiBackend/">Backend Repository</a>
+    <a href="https://github.com/LakshayGMZ/ipuSenpai#">Frontend Repository</a>
 </div>
 <br/>
 
