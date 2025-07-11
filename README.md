@@ -1,4 +1,4 @@
-<!-- Author:  (martian0x80) -->
+<!-- Author: martian0x80 -->
 <!-- Last Modified: 2024-05-18 -->
 
 <div align="center">
