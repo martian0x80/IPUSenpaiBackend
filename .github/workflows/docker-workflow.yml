@@ -37,27 +37,27 @@ jobs:
       - name: Push Docker image to registry
         run: docker push martian0x80/ipusenpai:latest
 
-  deploy-to-server:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-
-    steps:
-      - name: SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.REMOTE_KEY }}
-          port: ${{ secrets.REMOTE_PORT }}
-          script: |
-            echo "Pruning images..." | cowsay | lolcat
-            docker image prune
-            echo "Pulling Docker Image..." | cowsay | lolcat
-            docker pull martian0x80/ipusenpai:latest
-            echo "Killing em all..." | cowsay | lolcat
-            #docker rm $(docker stop $(docker ps -a -q --filter ancestor=martian0x80/ipusenpai --format="{{.ID}}"))
-            docker system prune -f
-            echo "Running Docker Container..." | cowsay | lolcat
-            #docker run -d -p 80:8080 --env-file ~/.env martian0x80/ipusenpai:latest
-            docker-compose up -d
-            echo "Pipeline completed." | cowsay | lolcat
+  # deploy-to-server:
+    # runs-on: ubuntu-latest
+    # needs: build-and-push
+    #
+    # steps:
+    #   - name: SSH
+    #     uses: appleboy/ssh-action@v1.0.3
+    #     with:
+    #       host: ${{ secrets.REMOTE_HOST }}
+    #       username: ${{ secrets.REMOTE_USER }}
+    #       key: ${{ secrets.REMOTE_KEY }}
+    #       port: ${{ secrets.REMOTE_PORT }}
+    #       script: |
+    #         echo "Pruning images..." | cowsay | lolcat
+    #         docker image prune
+    #         echo "Pulling Docker Image..." | cowsay | lolcat
+    #         docker pull martian0x80/ipusenpai:latest
+    #         echo "Killing em all..." | cowsay | lolcat
+    #         #docker rm $(docker stop $(docker ps -a -q --filter ancestor=martian0x80/ipusenpai --format="{{.ID}}"))
+    #         docker system prune -f
+    #         echo "Running Docker Container..." | cowsay | lolcat
+    #         #docker run -d -p 80:8080 --env-file ~/.env martian0x80/ipusenpai:latest
+    #         docker-compose up -d
+    #         echo "Pipeline completed." | cowsay | lolcat
